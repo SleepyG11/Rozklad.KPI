@@ -1,0 +1,4 @@
+<% let np = schedule.nextParams -%>
+<b><%= localizer.week(np.week).name %> (<%= np.week === params.currentWeek ? 'поточний' : 'наступний'%>) у групи <%= schedule.name %></b>:
+
+<%- include('./templates/week.ejs', { schedule, chat, params, localizer }) -%>

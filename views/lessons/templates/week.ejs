@@ -1,0 +1,9 @@
+<%_ for( let index = 0; index < 6; index++ ) { -%>
+    <%_ %><b><%= localizer.day(index).name -%></b>
+    <%_ if (schedule.lessons[index].meta.count === 0) { -%>
+        <%_ %><i>Пар немає</i>
+    <%_ } else { -%>
+        <%_ %><%- include('./day.ejs', { lessons: schedule.lessons[index], schedule, chat, params: { ...params, hideTime: true }, localizer, skipEmpty: true }) -%>
+    <% } -%>
+    
+<%_ } -%>

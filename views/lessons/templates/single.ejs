@@ -1,0 +1,15 @@
+<% let np = schedule.nextParams -%>
+<% let lesson = schedule.lesson -%>
+<b><%=lesson.name.join('. ')%></b>
+<i><%=np.lesson + 1%> пара / <%=localizer.interval(np.lesson)%> / <%=lesson.type.join(', ') || 'Невідомо'%></i>
+
+<%_ if (lesson.cabinets.length) { -%>
+    <%_ %><%=lesson.cabinets.length > 1 ? 'Кабінети' : 'Кабінет'%>: <i><%=lesson.cabinets.join(', ')%></i>
+<%_ } -%>
+<%= lesson.teachers.length > 1 ? 'Викладачі' : 'Викладач'%>: <i><%= lesson.teachers.length ? '' : 'Невідомо' %></i>
+<% lesson.teachers.forEach(teacher => { -%>
+≻ <i><%=teacher%></i>
+<% }) -%>
+<%_ if (links.totalLinks.length) { -%>
+    <%_ %>Посилання: <% links.totalLinks.map(linkData => { -%><a href="<%= linkData.link %>"><%= linkData.name %></a>  <% }) %>
+<%_ } -%>

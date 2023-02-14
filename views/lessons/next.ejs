@@ -1,0 +1,5 @@
+<% let np = schedule.nextParams -%>
+<b>Наступна пара у групи <%=schedule.name%>:</b>
+<i>У <%= localizer.day(np.day).name.toLowerCase() %>, <%= np.date.date() %> <%= localizer.month(np.date.month()).when.toLowerCase() %> (<%=localizer.diff(np.lessonStart).toLowerCase()%>)</i>
+
+<%-include ('./templates/single.ejs', { lesson: schedule.lesson, schedule, chat, params, localizer, links })-%>
