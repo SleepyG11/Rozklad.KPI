@@ -23,19 +23,21 @@ export default class TelegramClient extends TelegramBot{
             links: new LinksManager(this),
         }
 
-        this.on('message', msg => {
-            let text = msg.text ?? msg.caption;
-            if (!text) return;
-            if (COMMAND_PREFIX_REGEXP.test(text)) {
-                let separatorMatch = /\s|\n/.exec(text);
-                let separatorIndex = separatorMatch ? separatorMatch.index : text.length;
-                let commandName = text.substring(1, separatorIndex);
-                if (commandName.charAt(0) === '#') return;
-                let commandArgs = msg.text.substring(separatorIndex + 1).split(' ');
-                this.commands.emit('#command', msg, commandArgs, commandName);
-                this.commands.emit(commandName, msg, commandArgs, commandName);
-            } 
-            this.messages.emit(text, msg);
+        this.getMe().then(me => {
+            this.on('message', msg => {
+                let text = msg.text ?? msg.caption;
+                if (!text) return;
+                if (COMMAND_PREFIX_REGEXP.test(text)) {
+                    let separatorMatch = /\s|\n/.exec(text);
+                    let separatorIndex = separatorMatch ? separatorMatch.index : text.length;
+                    let commandName = text.substring(1, separatorIndex).replace('@' + me.username, '');
+                    if (commandName.charAt(0) === '#') return;
+                    let commandArgs = msg.text.substring(separatorIndex + 1).split(' ');
+                    this.commands.emit('#command', msg, commandArgs, commandName);
+                    this.commands.emit(commandName, msg, commandArgs, commandName);
+                } 
+                this.messages.emit(text, msg);
+            })
         })
         this.on('callback_query', query => {
             if (!query.data) return;

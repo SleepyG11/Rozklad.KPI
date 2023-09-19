@@ -564,10 +564,7 @@ export default class CommandsInterface{
                     })
                     let lessonName = lessonData.result.name;
                     if (lessonName.length > 64) lessonName = lessonName.substring(0, 61) + '...';
-                    this.client.sendMessage(chatId, localizeKey('', {
-                        lessonName,
-                        linkType: options.linkType
-                    }), {
+                    this.client.sendMessage(chatId, "Не хочете додати посилання до поточної пари?", {
                         parse_mode: 'HTML',
                         reply_to_message_id: messageId,
                         reply_markup: {
@@ -613,12 +610,12 @@ export default class CommandsInterface{
                     let linkData = await this.client.rozklad.links.fetchLink(options.linkId);
                     if (!linkData) return this.addLessonLink(userMsg, botMsg, this.LESSON_LINK_STAGES.CANCEL, options);
                     this.client.deleteMessage(chatId, botMsg.message_id).catch(e => null);
-                    let responseBotMsg = await this.client.sendMessage(chatId, localizeKey('bind.stageName.title'), {
+                    let responseBotMsg = await this.client.sendMessage(chatId, localizeKey('Назвіть посилання.'), {
                         parse_mode: 'HTML',
                         reply_to_message_id: messageId,
                         reply_markup: {
                             force_reply: true,
-                            input_field_placeholder: localizeKey('link.stageName.placeholder')
+                            input_field_placeholder: localizeKey('Назва посилання')
                         }
                     })
                     let nameUserMsg = await this.client.awaitReplyToMessage(chatId, responseBotMsg.message_id, {
