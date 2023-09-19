@@ -1,4 +1,0 @@
-<% let np = schedule.nextParams -%>
-<b>Пари на сьогодні, <%= np.date.date() %> <%= localizer.month(np.month).when.toLowerCase() %>, у групи <%= schedule.name %>:</b>
-
-<%- include('./templates/day.ejs', { lessons: schedule.lessons, schedule, chat, params, localizer, skipEmpty: false }); _%>
