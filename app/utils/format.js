@@ -1,4 +1,4 @@
-import { localizeKey } from "./messages";
+import { l } from "./messages";
 import moment from 'moment-timezone';
 
 export function formatGroupName(name = ''){
@@ -79,19 +79,21 @@ export function formatTimeDefinition(date){
 }
 
 export function formatSingleLesson(lesson, number, links){
-    let lessonRooms = localizeKey(
-        'lessons.typeSingle.roomsFormat.' + countToLocalize(lesson.rooms.length),
+    let lessonRooms = l(
+        'lesson.templates.single.rooms.' + countToLocalize(lesson.rooms.length),
         { rooms: lesson.rooms.join(', ') }
     );
-    let lessonTeachers = localizeKey(
-        'lessons.typeSingle.teachersFormat.' + countToLocalize(lesson.teachers.length),
+    let lessonTeachers = l(
+        'lesson.templates.single.teachers.' + countToLocalize(lesson.teachers.length),
         { teachers: lesson.teachers.map(t => `· ${t}`).join('\n') }
     );
-    let lessonLinks = links.length ? localizeKey(
-        'lessons.typeSingle.linksFormat',
-        { links: links.map(link => `<a href="${link.url}">${link.name.replace(/\</g, '&lt;').replace(/\>/g, '&gt;')}</a>`).join(', ') }
+    let lessonLinks = links.length ? l(
+        'lesson.templates.single.links',
+        { links: links.map(link => {
+            return `<a href="${link.url}">${link.name.replace(/\</g, '&lt;').replace(/\>/g, '&gt;')}</a>`
+        }).join(', ') }
     ) : '';
-    return localizeKey('lessons.typeSingle.fullFormat', {
+    return l('lesson.templates.single.message', {
         lessonName: lesson.name,
         lessonNumber: number + 1,
         lessonTimes: LESSON_TIMES[number],
@@ -108,10 +110,10 @@ export function formatLessonsDay(day, time = false, teachers = false, skipEmpty 
         let lesson = day.lessons[number];
         if (!lesson) {
             if (!skipEmpty) formattedLessons.push(
-                localizeKey('lessons.typeDay.lessonFormat.' + timeKey, {
+                l('lesson.templates.day.lesson.' + timeKey, {
                     lessonNumber: number + 1,
                     lessonTimes: LESSON_TIMES[number],
-                    lessonData: localizeKey('lessons.typeDay.missingFormat.' + timeKey)
+                    lessonData: l('lesson.templates.day.missing.' + timeKey)
                 }),
             )
             continue;
@@ -119,19 +121,21 @@ export function formatLessonsDay(day, time = false, teachers = false, skipEmpty 
         let lessonRooms = lesson.rooms.join(', ');
         let lessonType = lesson.types.join(', ');
         let formattedLesson = [
-            localizeKey('lessons.typeDay.lessonFormat.' + timeKey, {
+            l('lesson.templates.day.lesson.' + timeKey, {
                 lessonNumber: number + 1,
                 lessonTimes: LESSON_TIMES[number],
                 lessonData: [
-                    lessonRooms ? localizeKey('lessons.typeDay.roomsFormat', { rooms: lessonRooms }) : '',
-                    lessonType ? localizeKey('lessons.typeDay.typeFormat', { type: lessonType }) : ''
+                    lessonRooms ? l('lesson.templates.day.rooms', { rooms: lessonRooms }) : '',
+                    lessonType ? l('lesson.templates.day.type', { type: lessonType }) : ''
                 ].filter(Boolean).join(' · ')
             }),
             lesson.name
         ].join(' - ');
         if (teachers && lesson.teachers.length){
             formattedLesson += '\n';
-            formattedLesson += lesson.teachers.map(t => ` ≻  <i>${t}</i>`).join('\n');
+            formattedLesson += lesson.teachers.map(t => {
+                return l('lesson.templates.day.teacher', { teacher: t })
+            }).join('\n');
         }
         formattedLessons.push(formattedLesson);
     }
@@ -145,13 +149,13 @@ export function formatLessonsWeek(week, time = false, teachers = false){
         let day = week[dayNumber];
         let dayText;
         if (!day.count) {
-            dayText = localizeKey('lessons.typeWeek.missingFormat')
+            dayText = l('lesson.templates.week.missing')
         } else {
             dayText = formatLessonsDay(day, false, teachers, true);
         }
         formattedDays.push(
-            localizeKey('lessons.typeWeek.dayFormat', { 
-                weekday: localizeKey('lessons.daysNumber.' + dayNumber),
+            l('lesson.templates.week.day', { 
+                weekday: l('utils.daysNumber.' + dayNumber),
                 dayText
             })
         )
@@ -161,8 +165,8 @@ export function formatLessonsWeek(week, time = false, teachers = false){
 
 export function formatChatSettings(chat, schedule){
     const activeText = (b) => b ? '🔹' : '🔸';
-    return localizeKey('settings.fullFormat', {
-        groupText: localizeKey(`settings.${schedule ? 'groupFormat' : 'noGroupFormat'}`, {
+    return l('settings.messages.message', {
+        groupText: l(`settings.templates.title.${schedule ? 'withGroup' : 'withoutGroup'}`, {
             groupName: schedule?.name
         }),
         showTeachersText: activeText(!chat.hideTeachers),

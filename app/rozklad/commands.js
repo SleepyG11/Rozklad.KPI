@@ -1,28 +1,23 @@
 import TelegramClient from "../bot";
-import { localizeKey } from "../utils/messages";
+import { l, localizeKeyboard } from "../utils/messages";
 import { getCurrentLesson, getCurrentWeekLessons, getFirstWeekLessons, getNextDayLessons, getNextLesson, getNextWeekLessons, getSecondWeekLessons, getTodayLessons, getTomorrowLessons } from '../utils/lessons';
 import { formatCapitalize, formatChatSettings, formatGroupName, formatLessonsDay, formatLessonsWeek, formatSingleLesson, formatTimeDefinition } from "../utils/format";
-import { getLessonDates, getSemester, getWeek } from "../utils/times";
+import { getBreak, getLessonDates, getSemester, getWeek } from "../utils/times";
 import moment from "moment-timezone";
 
 export default class CommandsInterface{
-    OBJECT_TYPES = {
-        MESSAGE: 'msg',
-        QUERY_WITH_REPLY: 'replyQuery',
-        QUERY: 'query'
-    }
-    BIND_STAGES = {
+    BIND_COMMAND_STAGES = {
         START: '0',
         NAME: '1',
         DATA: '2',
         END: '3'
     }
-    LESSON_STAGES = {
+    LESSON_COMMAND_STAGES = {
         CHAT: '0',
         DATA: '1',
         SCHEDULE: '2',
     }
-    LESSON_LINK_STAGES = {
+    LINK_COMMAND_STAGES = {
         START: '0',
         TEMP: '1',
         NAME: '2',
@@ -57,12 +52,12 @@ export default class CommandsInterface{
         if (chatData.groupUUID) return chatData;
         if (await this.canUseAdminCommands(msg.chat.id, msg.from.id)){
             this.client.sendMessage(msg.chat.id, 
-                localizeKey('lessons.notBinded.asAdmin'), 
+                l('lesson.messages.notBinded.asAdmin'), 
                 { parse_mode: 'HTML', reply_to_message_id: msg.message_id, }
             )
         } else {
             this.client.sendMessage(msg.chat.id, 
-                localizeKey('lessons.notBinded.asUser'),
+                l('lesson.messages.notBinded.asUser'),
                 { parse_mode: 'HTML', reply_to_message_id: msg.message_id, }
             )
         }
@@ -84,7 +79,7 @@ export default class CommandsInterface{
         return false;
     }
 
-    async bindGroup(msg, stage = this.BIND_STAGES.START, data){
+    async bindGroup(msg, stage = this.BIND_COMMAND_STAGES.START, data){
         let chatId = msg.chat.id;
         let userId = msg.from.id;
         let messageId = msg.message_id;
@@ -110,109 +105,114 @@ export default class CommandsInterface{
 
         try {
             switch(stage){
-                case this.BIND_STAGES.START: {
-                    let responseBotMsg = await this.client.sendMessage(chatId, localizeKey('bind.stageStart.title'), {
-                        parse_mode: 'HTML',
-                        reply_to_message_id: messageId,
-                        reply_markup: {
-                            force_reply: true,
-                            input_field_placeholder: localizeKey('bind.stageStart.placeholder')
+                case this.BIND_COMMAND_STAGES.START: {
+                    let responseBotMsg = await this.client.sendMessage(
+                        chatId, 
+                        l('bind.messages.stageStart.enterGroupName'), 
+                        {
+                            parse_mode: 'HTML',
+                            reply_to_message_id: messageId,
+                            reply_markup: {
+                                force_reply: true,
+                                input_field_placeholder: l('bind.placeholders.stageStart.groupName')
+                            }
                         }
-                    })
-                    let nameUserMsg = await this.client.awaitReplyToMessage(chatId, responseBotMsg.message_id, {
-                        filter: filterMsg => filterMsg.from.id === userId && filterMsg.text
-                    })
+                    )
+                    let nameUserMsg = await this.client.awaitReplyToMessage(
+                        chatId, responseBotMsg.message_id, 
+                        { filter: filterMsg => filterMsg.from.id === userId && filterMsg.text }
+                    )
                     messageId = nameUserMsg.message_id;
                     data = nameUserMsg.text.substring(0, 10);
                 }
-                case this.BIND_STAGES.NAME: {
+                case this.BIND_COMMAND_STAGES.NAME: {
                     let groupNames = await this.client.rozklad.schedules.fetchGroupsName(data);
                     switch(groupNames.length){
                         case 0: {
-                            this.client.sendMessage(chatId, localizeKey('bind.stageName.notFound'), messageOptions())
-                            return;
+                            return void this.client.sendMessage(
+                                chatId, l('bind.messages.stageName.notFound'), 
+                                messageOptions()
+                            )
                         }
                         case 1: {
-                            this.client.sendMessage(
-                                chatId, localizeKey('bind.stageName.foundOne', groupNames[0]),
-                                messageOptions([
-                                    [
+                            return void this.client.sendMessage(
+                                chatId, l('bind.messages.stageName.foundOne', groupNames[0]),
+                                messageOptions(
+                                    localizeKeyboard([[
                                         {
-                                            text: localizeKey('bind.stageName.acceptButton'),
-                                            callback_data: `bind?s=${this.BIND_STAGES.DATA}&d=${groupNames[0].name}`
+                                            text: 'bind.buttons.stageName.accept',
+                                            callback_data: `bind?s=${this.BIND_COMMAND_STAGES.DATA}&d=${groupNames[0].name}`
                                         },
                                         {
-                                            text: localizeKey('bind.stageName.cancelButton'),
-                                            callback_data: 'delete'
-                                        }
-                                    ]
-                                ])
-                            )
-                            return;
-                        }
-                        default: {
-                            this.client.sendMessage(
-                                chatId, localizeKey('bind.stageName.foundMultiple'),
-                                messageOptions(
-                                    groupNames.map(groupName => {
-                                        return [{
-                                            text: groupName.name,
-                                            callback_data: `bind?s=${this.BIND_STAGES.DATA}&d=${groupName.name}`
-                                        }]
-                                    }).concat([[
-                                        {
-                                            text: localizeKey('bind.stageName.hideButton'),
+                                            text: 'bind.buttons.stageName.cancel',
                                             callback_data: 'delete'
                                         }
                                     ]])
                                 )
                             )
-                            return;
+                        }
+                        default: {
+                            return void this.client.sendMessage(
+                                chatId, l('bind.messages.stageName.foundMultiple'),
+                                messageOptions([
+                                    ...groupNames.map(groupName => {
+                                        return [{
+                                            text: groupName.name,
+                                            callback_data: `bind?s=${this.BIND_COMMAND_STAGES.DATA}&d=${groupName.name}`
+                                        }]
+                                    }),
+                                    localizeKeyboard([
+                                        {
+                                            text: 'bind.buttons.stageName.hide',
+                                            callback_data: 'delete'
+                                        }
+                                    ])
+                                ])
+                            )
                         }
                     }
                 }
-                case this.BIND_STAGES.DATA: {
+                case this.BIND_COMMAND_STAGES.DATA: {
                     let groupData = await this.client.rozklad.schedules.fetchGroupsData(data);
                     switch(groupData.length){
                         case 0: {
-                            this.client.sendMessage(chatId, localizeKey('bind.stageData.notFound'), messageOptions())
-                            return;
+                            return void this.client.sendMessage(
+                                chatId, l('bind.messages.stageData.notFound'), 
+                                messageOptions()
+                            )
                         }
                         case 1: {
-                            data = groupData[0].uuid;
-                            break;
+                            data = groupData[0].uuid; break;
                         }
                         default: {
-                            this.client.sendMessage(
-                                chatId, localizeKey('bind.stageData.foundMultiple', { name: data }),
+                            return void this.client.sendMessage(
+                                chatId, l('bind.messages.stageData.foundMultiple', { name: data }),
                                 messageOptions([
                                     ...groupData.map(group => {
                                         return [{
                                             text: group.name,
-                                            callback_data: `bind?s=${this.BIND_STAGES.END}&d=${group.uuid}`
+                                            callback_data: `bind?s=${this.BIND_COMMAND_STAGES.END}&d=${group.uuid}`
                                         }]
                                     }),
                                     [
                                         {
-                                            text: localizeKey('bind.stageData.hideButton'),
+                                            text: l('bind.buttons.stageData.hide'),
                                             callback_data: 'delete'
                                         }
                                     ]
                                 ])
                             )
-                            return;
                         }
                     }
                 }
-                case this.BIND_STAGES.END: {
+                case this.BIND_COMMAND_STAGES.END: {
                     let groupSchedule = await this.client.rozklad.schedules.fetchGroupSchedule(data);
                     if (!groupSchedule) {
-                        this.client.sendMessage(chatId, localizeKey('bind.stageEnd.notFound'), messageOptions())
-                        return;
+                        return void this.client.sendMessage(chatId, l('bind.messages.stageEnd.notFound'), messageOptions())
                     }
                     let chatData = await this.client.rozklad.chats.fetchChat(chatId);
                     await chatData.update({ groupUUID: groupSchedule.uuid });
-                    this.client.sendMessage(chatId, localizeKey('bind.stageEnd.success', groupSchedule), messageOptions())
+                    return void this.client.sendMessage(chatId, l('bind.messages.stageEnd.success', groupSchedule), messageOptions())
                 }
             }
         } catch(e){
@@ -220,13 +220,12 @@ export default class CommandsInterface{
         }
     }
     async bindGroupMessage(msg, args){
-        if (args[0]) return await this.bindGroup(msg, this.BIND_STAGES.NAME, args[0]);
-        return void await this.bindGroup(msg);
+        args[0] ? this.bindGroup(msg, this.BIND_COMMAND_STAGES.NAME, args[0]) : this.bindGroup(msg);
     }
     async bindGroupCallbackQuery(query, params){
         if (await this.deleteMessageIfNoReply(query)) return;
         this.client.deleteMessage(query.message.chat.id, query.message.message_id).catch(e => null);
-        return void await this.bindGroup(query.message.reply_to_message, params.s, params.d);
+        this.bindGroup(query.message.reply_to_message, params.s, params.d);
     }
 
     async unbindGroup(msg){
@@ -248,10 +247,10 @@ export default class CommandsInterface{
         })
     }
     async unbindGroupMessage(msg, args){
-        return void await this.unbindGroup(msg);
+        this.unbindGroup(msg);
     }
 
-    async sendLesson(msg, target, stage = this.LESSON_STAGES.CHAT, options = {}){
+    async sendLesson(msg, target, stage = this.LESSON_COMMAND_STAGES.CHAT, options = {}){
         let chatId = msg.chat.id;
         let userId = msg.from.id;
         let messageId = msg.message_id;
@@ -286,27 +285,29 @@ export default class CommandsInterface{
 
         let groupUUID, chatData;
         switch(stage){
-            case this.LESSON_STAGES.CHAT: {
+            case this.LESSON_COMMAND_STAGES.CHAT: {
                 chatData = await this.getChatOrNotifyIfNotBinded(msg);
                 if (!chatData) return;
                 groupUUID = chatData.groupUUID;
                 break;
             }
-            case this.LESSON_STAGES.DATA: {
+            case this.LESSON_COMMAND_STAGES.DATA: {
                 let groupName = formatGroupName(options.groupName);
                 let groupData = await this.client.rozklad.schedules.fetchGroupsData(groupName);
                 switch(groupData.length){
                     case 0: {
-                        this.client.sendMessage(chatId, localizeKey('lessons.stageData.notFound'), messageOptions())
-                        return;
+                        return this.client.sendMessage(
+                            chatId, l('lesson.messages.stageData.notFound'), 
+                            messageOptions()
+                        )
                     }
                     case 1: {
                         groupUUID = groupData[0].uuid;
                         break;
                     }
                     default: {
-                        this.client.sendMessage(
-                            chatId, localizeKey('lessons.stageData.foundMultiple', { name: groupName }),
+                        return this.client.sendMessage(
+                            chatId, l('lesson.messages.stageData.foundMultiple', { name: groupName }),
                             messageOptions([
                                 ...groupData.map(group => {
                                     return [{
@@ -314,20 +315,19 @@ export default class CommandsInterface{
                                         callback_data: `lesson?t=${target}&d=${group.uuid}`
                                     }]
                                 }),
-                                [
+                                localizeKeyboard([
                                     {
-                                        text: localizeKey('lessons.stageData.hideButton'),
+                                        text: 'lesson.buttons.stageData.hide',
                                         callback_data: 'delete'
                                     }
-                                ]
+                                ])
                             ])
                         )
-                        return;
                     }
                 }
                 break;
             }
-            case this.LESSON_STAGES.SCHEDULE: {
+            case this.LESSON_COMMAND_STAGES.SCHEDULE: {
                 groupUUID = options.groupUUID;
                 break;
             }
@@ -335,7 +335,7 @@ export default class CommandsInterface{
         }
         let scheduleData = await this.client.rozklad.schedules.fetchGroupSchedule(groupUUID);
         if (!scheduleData?.data) return this.client.sendMessage(chatId, 
-            localizeKey('lessons.noSchedule'), 
+            l('lesson.messages.noSchedule'), 
             { parse_mode: 'HTML', reply_to_message_id: msg.message_id, }
         )
         chatData ??= await this.client.rozklad.chats.fetchChat(chatId);
@@ -354,20 +354,21 @@ export default class CommandsInterface{
                         date: lessonData.date,
                     });
                     let labels = dateLabels(lessonData.date);
-                    msgText = localizeKey('lessons.' + target + '.format', {
+                    if (target === 'current' && getBreak()) target = 'next';
+                    msgText = l('lesson.targets.' + target + '.format', {
                         groupName: scheduleData.name,
                         lessonText: formatSingleLesson(lessonData.result, lessonData.number, links),
                         timeDiff: labels.diff,
                         timeLabel: labels.label
                     })
                 } else {
-                    msgText = localizeKey('lessons.' + target + '.' + lessonData.reason, {
+                    msgText = l('lesson.targets.' + target + '.' + lessonData.reason, {
                         groupName: scheduleData.name,
                     })
-                    if (target !== 'next') keyboard = [[{
-                        text: 'Наступна пара',
+                    if (target !== 'next') keyboard = localizeKeyboard([[{
+                        text: 'lesson.buttons.nextLesson',
                         callback_data: `lesson?t=next&d=${scheduleData.uuid}`
-                    }]]
+                    }]])
                 }
                 break;
             }
@@ -376,19 +377,19 @@ export default class CommandsInterface{
             case 'nextday': {
                 if (lessonData.result && lessonData.result.count) {
                     let labels = dateLabels(lessonData.date);
-                    msgText = localizeKey('lessons.' + target + '.format', {
+                    msgText = l('lesson..targets.' + target + '.format', {
                         groupName: scheduleData.name,
                         lessonText: formatLessonsDay(lessonData.result, !chatData.hideTime, !chatData.hideTeachers, false),
                         timeLabel: labels.label
                     })
                 } else {
-                    msgText = localizeKey('lessons.' + target + '.' + lessonData.reason, {
+                    msgText = l('lesson.targets.' + target + '.' + lessonData.reason, {
                         groupName: scheduleData.name,
                     })
-                    if (target !== 'nextday') keyboard = [[{
-                        text: 'Наступний робочий день',
+                    if (target !== 'nextday') keyboard = localizeKeyboard([[{
+                        text: 'lesson.buttons.nextday',
                         callback_data: `lesson?t=nextday&d=${scheduleData.uuid}`
-                    }]]
+                    }]])
                 }
                 break;
             }
@@ -399,51 +400,45 @@ export default class CommandsInterface{
                 let currentWeek = getWeek();
                 let resultWeek = getWeek(lessonData.date);
                 let isCurrentWeek = currentWeek === resultWeek;
-                let title = localizeKey('lessons.typeWeek.titleFormat', {
-                    weekNumberText: localizeKey('lessons.weeksNumber.' + resultWeek),
-                    isCurrentWeekText: localizeKey('lessons.isCurrentWeek.' + isCurrentWeek).toLowerCase(),
+                let title = l('lesson.templates.week.titleFormat', {
+                    weekNumberText: l('utils.weeksNumber.' + resultWeek),
+                    isCurrentWeekText: l('utils.currentWeek.' + isCurrentWeek).toLowerCase(),
                     groupName: scheduleData.name,
                     ...dateLabels(lessonData.date)
                 })
                 let showTeachers = options.showTeachers ?? !chatData.hideTeachers;
-                msgText = localizeKey('lessons.typeWeek.fullFormat', {
+                msgText = l('lesson.templates.week.message', {
                     title,
                     lessonText: formatLessonsWeek(lessonData.result, !chatData.hideTime, showTeachers),
                 })
                 let oppositeWeek = resultWeek ^ true;
   
-                keyboard = [[
+                keyboard = localizeKeyboard([[
                     {
-                        text: localizeKey('lessons.typeWeek.' + (oppositeWeek ? 'toSecond' : 'toFirst')),
+                        text: 'lesson.buttons.' + (oppositeWeek ? 'secondWeek' : 'firstWeek'),
                         callback_data: `lesson?o=${Number(showTeachers)}&t=${oppositeWeek ? 'week_second' : 'week_first'}&d=${scheduleData.uuid}`
                     },
                     {
-                        text: localizeKey('lessons.typeWeek.' + (!showTeachers ? 'showTeachers' : 'hideTeachers')),
+                        text: 'lesson.buttons.' + (!showTeachers ? 'showTeachers' : 'hideTeachers'),
                         callback_data: `lesson?o=${Number(!showTeachers)}&t=${resultWeek ? 'week_second' : 'week_first'}&d=${scheduleData.uuid}`
                     }
-                ]]
+                ]])
             }
         }
         if (options.edit) this.client.editMessageText(msgText, messageOptions(keyboard)).catch(e => console.error(String(e)));
         else this.client.sendMessage(chatId, msgText, messageOptions(keyboard));
     }
     async sendLessonMessage(msg, args, target){
-        if (args[0]) return void await this.sendLesson(msg, target, this.LESSON_STAGES.DATA, { 
+        this.sendLesson(msg, target, args[0] ? this.LESSON_COMMAND_STAGES.DATA : this.LESSON_COMMAND_STAGES.CHAT, { 
             edit: false, groupName: args[0],
-        });
-        return void await this.sendLesson(msg, target, this.LESSON_STAGES.CHAT, { 
-            edit: false,
         });
     }
     async sendLessonCallbackQuery(query, params){
         let msg = query.message;
         let target = params.t;
         let showTeachers = params.o ? params.o == 1 : undefined;
-        if (params.d) return void await this.sendLesson(msg, target, this.LESSON_STAGES.SCHEDULE, {
+        this.sendLesson(msg, target, params.d ? this.LESSON_COMMAND_STAGES.SCHEDULE : this.LESSON_COMMAND_STAGES.CHAT, {
             edit: true, showTeachers, groupUUID: params.d,
-        });
-        return void await this.sendLesson(msg, target, this.LESSON_STAGES.CHAT, {
-            edit: true, showTeachers
         });
     }
 
@@ -485,32 +480,32 @@ export default class CommandsInterface{
         }
         let scheduleData = await this.client.rozklad.schedules.fetchGroupSchedule(chatData.groupUUID);
         let msgText = formatChatSettings(chatData, scheduleData);
-        let keyboard = [
+        let keyboard = localizeKeyboard([
             [{ 
-                text: localizeKey(`settings.toggleTeachers.${chatData.hideTeachers}`),
+                text: `settings.buttons.toggleTeachers.${chatData.hideTeachers}`,
                 callback_data: `settings?k=hideTeachers&b=${Number(!chatData.hideTeachers)}`
             }],
             [{ 
-                text: localizeKey(`settings.toggleTime.${chatData.hideTime}`),
+                text: `settings.buttons.toggleTime.${chatData.hideTime}`,
                 callback_data: `settings?k=hideTime&b=${Number(!chatData.hideTime)}`
             }],
             [{ 
-                text: localizeKey(`settings.toggleBeforeNotif.${!chatData.beforeNotif}`),
+                text: `settings.buttons.toggleBeforeNotif.${!chatData.beforeNotif}`,
                 callback_data: `settings?k=beforeNotif&b=${Number(!chatData.beforeNotif)}`
             }],
             [{ 
-                text: localizeKey(`settings.toggleNowNotif.${!chatData.nowNotif}`),
+                text: `settings.buttons.toggleNowNotif.${!chatData.nowNotif}`,
                 callback_data: `settings?k=nowNotif&b=${Number(!chatData.nowNotif)}`
             }],
             [{ 
-                text: localizeKey(`settings.toggleLinks.${chatData.ignoreLinks}`),
+                text: `settings.buttons.toggleLinks.${chatData.ignoreLinks}`,
                 callback_data: `settings?k=ignoreLinks&b=${Number(!chatData.ignoreLinks)}`
             }],
             [{
-                text: 'Закрити',
+                text: 'settings.buttons.close',
                 callback_data: 'delete?u=' + userId
             }]
-        ]
+        ])
         if (query){
             this.client.editMessageText(msgText, {
                 chat_id: chatId,
@@ -526,11 +521,11 @@ export default class CommandsInterface{
         }
     }
     async sendSettingsMessage(msg, args){
-        return void await this.sendSettings(msg);
+        this.sendSettings(msg);
     }
     async sendSettingsCallbackQuery(query, params){
         if (await this.deleteMessageIfNoReply(query)) return;
-        return void await this.sendSettings(query.message.reply_to_message, query.message, query, params);
+        this.sendSettings(query.message.reply_to_message, query.message, query, params);
     }
 
     async addLessonLink(userMsg, botMsg, stage, options){
@@ -540,7 +535,7 @@ export default class CommandsInterface{
 
         try {
             switch(stage){
-                case this.LESSON_LINK_STAGES.START: {
+                case this.LINK_COMMAND_STAGES.START: {
                     let chatData = await this.client.rozklad.chats.fetchChat(chatId);
                     if (chatData.ignoreLinks || !chatData.groupUUID) return;
                     let scheduleData = await this.client.rozklad.schedules.fetchGroupSchedule(chatData.groupUUID);
@@ -564,41 +559,41 @@ export default class CommandsInterface{
                     })
                     let lessonName = lessonData.result.name;
                     if (lessonName.length > 64) lessonName = lessonName.substring(0, 61) + '...';
-                    this.client.sendMessage(chatId, "Не хочете додати посилання до поточної пари?", {
+                    this.client.sendMessage(chatId, l('link.messages.stageStart.message'), {
                         parse_mode: 'HTML',
                         reply_to_message_id: messageId,
                         reply_markup: {
-                            inline_keyboard: [[
+                            inline_keyboard: localizeKeyboard([[
                                 {
-                                    text: 'Так',
-                                    callback_data: `link?s=${this.LESSON_LINK_STAGES.NAME}&d=${linkData.id}`
+                                    text: 'link.buttons.stageStart.addPerm',
+                                    callback_data: `link?s=${this.LINK_COMMAND_STAGES.NAME}&d=${linkData.id}`
                                 },
                                 {
-                                    text: 'Так, тимчасово',
-                                    callback_data: `link?s=${this.LESSON_LINK_STAGES.TEMP}&d=${linkData.id}`
+                                    text: 'link.buttons.stageStart.addTemp',
+                                    callback_data: `link?s=${this.LINK_COMMAND_STAGES.TEMP}&d=${linkData.id}`
                                 },
                                 {
-                                    text: 'Ні',
-                                    callback_data: `link?s=${this.LESSON_LINK_STAGES.CANCEL}&d=${linkData.id}`
+                                    text: 'link.buttons.stageStart.cancel',
+                                    callback_data: `link?s=${this.LINK_COMMAND_STAGES.CANCEL}&d=${linkData.id}`
                                 }
-                            ]]
+                            ]])
                         }
                     })
                     return
                 }
-                case this.LESSON_LINK_STAGES.CANCEL: {
+                case this.LINK_COMMAND_STAGES.CANCEL: {
                     if (botMsg) this.client.deleteMessage(chatId, botMsg.message_id).catch(e => null);
                     this.client.rozklad.links.deleteLink(options.linkId);
                     return;
                 }
-                case this.LESSON_LINK_STAGES.TEMP: {
+                case this.LINK_COMMAND_STAGES.TEMP: {
                     let linkData = await this.client.rozklad.links.fetchLink(options.linkId);
-                    if (!linkData) return this.addLessonLink(msg, this.LESSON_LINK_STAGES.CANCEL, options);
+                    if (!linkData) return this.addLessonLink(msg, this.LINK_COMMAND_STAGES.CANCEL, options);
                     linkData.update({
                         name: `${linkData.type} (тимч.)`,
                         active: true,
                     })
-                    this.client.editMessageText('Посилання додано.', {
+                    this.client.editMessageText(l('link.messages.stageTemp.added'), {
                         chat_id: chatId,
                         message_id: botMsg.message_id,
                         parse_mode: 'HTML',
@@ -606,23 +601,23 @@ export default class CommandsInterface{
                     })
                     return;
                 }
-                case this.LESSON_LINK_STAGES.NAME: {
+                case this.LINK_COMMAND_STAGES.NAME: {
                     let linkData = await this.client.rozklad.links.fetchLink(options.linkId);
-                    if (!linkData) return this.addLessonLink(userMsg, botMsg, this.LESSON_LINK_STAGES.CANCEL, options);
+                    if (!linkData) return this.addLessonLink(userMsg, botMsg, this.LINK_COMMAND_STAGES.CANCEL, options);
                     this.client.deleteMessage(chatId, botMsg.message_id).catch(e => null);
-                    let responseBotMsg = await this.client.sendMessage(chatId, localizeKey('Назвіть посилання.'), {
+                    let responseBotMsg = await this.client.sendMessage(chatId, l('link.messages.stageName.message'), {
                         parse_mode: 'HTML',
                         reply_to_message_id: messageId,
                         reply_markup: {
                             force_reply: true,
-                            input_field_placeholder: localizeKey('Назва посилання')
+                            input_field_placeholder: l('link.placeholders.stageName.linkName')
                         }
                     })
                     let nameUserMsg = await this.client.awaitReplyToMessage(chatId, responseBotMsg.message_id, {
                         filter: filterMsg => {
                             if (filterMsg.from.id !== userId || !filterMsg.text) return false;
                             if (filterMsg.text.length > 32){
-                                this.client.sendMessage(chatId, 'Назва занадто довга.', {
+                                this.client.sendMessage(chatId, l('link.messages.stageName.tooLong'), {
                                     parse_mode: 'HTML',
                                     reply_to_message_id: filterMsg.message_id,
                                 })
@@ -637,7 +632,7 @@ export default class CommandsInterface{
                         active: true,
                         expiresAt: moment({ month: 0 }).add(semester ? 5 : 12, 'month').endOf('month').toDate()
                     })
-                    this.client.sendMessage(chatId, 'Посилання додано.', {
+                    this.client.sendMessage(chatId, l('link.messages.stageName.added'), {
                         parse_mode: 'HTML',
                         reply_to_message_id: nameUserMsg.message_id,
                         reply_markup: {
@@ -649,18 +644,17 @@ export default class CommandsInterface{
                 }
             }
         } catch(e){
-            if (e.name === 'SequelizeUniqueConstraintError') return; // Попытка создать ссылку которая уже есть.
             console.error(e);
         }
     }
     async addLessonLinkMessage(msg, linkUrl, linkType){
-        return void await this.addLessonLink(msg, null, this.LESSON_LINK_STAGES.START, {
+        this.addLessonLink(msg, null, this.LINK_COMMAND_STAGES.START, {
             linkUrl, linkType 
         })
     }
     async addLessonLinkCallbackQuery(query, params){
         if (await this.deleteMessageIfNoReply(query)) return;
-        return void await this.addLessonLink(query.message.reply_to_message, query.message, params.s, {
+        this.addLessonLink(query.message.reply_to_message, query.message, params.s, {
             linkId: params.d
         })
     }
@@ -693,7 +687,7 @@ export default class CommandsInterface{
             if (!scheduleData) return;
             let lessonData = getCurrentLesson(scheduleData.data);
             if (!lessonData.result) {
-                return this.client.sendMessage(msg.chat.id, 'Зараз немає пари.', messageOptions());
+                return this.client.sendMessage(msg.chat.id, l('linksDelete.messages.noLesson'), messageOptions());
             };
             lessonHash = lessonData.result.hash;
         } else {
@@ -706,9 +700,9 @@ export default class CommandsInterface{
         })
         if (!currentLinks.length){
             if (options.edit){
-                this.client.editMessageText('Усі посилання на пару були видалені.', messageOptions());
+                this.client.editMessageText(l('linksDelete.messages.allDeleted'), messageOptions());
             } else {
-                this.client.sendMessage(msg.chat.id, 'На цю пару немає доданих посилань.', messageOptions());
+                this.client.sendMessage(msg.chat.id, l('linksDelete.messages.noLinks'), messageOptions());
             }
             return
         }
@@ -719,22 +713,22 @@ export default class CommandsInterface{
                     callback_data: `linkdel?d=${link.id}`
                 }]
             }),
-            [{
-                text: 'Закрити',
+            localizeKeyboard([{
+                text: 'linksDelete.buttons.close',
                 callback_data: 'delete'
-            }]
+            }])
         ]
         if (options.edit){
-            this.client.editMessageText('Оберіть посилання, які хочете видалити.', messageOptions(keyboard))
+            this.client.editMessageText(l('linksDelete.messages.message'), messageOptions(keyboard)).catch(e => null);
         } else {
-            this.client.sendMessage(msg.chat.id, 'Оберіть посилання, які хочете видалити.', messageOptions(keyboard))
+            this.client.sendMessage(msg.chat.id, l('linksDelete.messages.message'), messageOptions(keyboard))
         }
     }
     async deleteLessonLinkMessage(msg){
-        return void await this.deleteLessonLink(msg);
+        this.deleteLessonLink(msg);
     }
     async deleteLessonLinkCallbackQuery(query, params){
-        return void await this.deleteLessonLink(query.message, {
+        this.deleteLessonLink(query.message, {
             edit: true,
             deleteId: params.d,
             hash: params.h

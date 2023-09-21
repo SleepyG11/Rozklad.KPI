@@ -68,7 +68,7 @@ export function getWeek(date, invert = false){
     return Math.floor(((moment(date).unix() - 1524430800) / 604800) % 2) ^ invert;
 }
 export function getDay(date){
-    return (moment(date).weekday() + 6) % 7;
+    return moment(date).weekday();
 }
 export function getDayIndex(date, invert = false){
     return calculateDayIndex(getWeek(date, invert), getDay(date));
