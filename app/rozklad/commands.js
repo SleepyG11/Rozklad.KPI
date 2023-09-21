@@ -840,7 +840,7 @@ export default class CommandsInterface{
     }
 
     async sendStart(msg, parentId){
-        const fallback = () => this.client.sendMessage(msg.chat.id, l('start.messages.message'), { parse_mode: 'HTML' });
+        const fallback = () => this.client.sendMessage(msg.chat.id, l('start.messages.message'), { parse_mode: 'HTML', disable_web_page_preview: true });
         if (!parentId) return fallback();
         let member = await this.client.getChatMember(parentId, msg.from.id);
         if (!['creator', 'member', 'administrator'].includes(member.status)) return fallback()
