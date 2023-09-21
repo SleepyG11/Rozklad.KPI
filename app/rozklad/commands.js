@@ -1,9 +1,10 @@
 import TelegramClient from "../bot";
 import { l, localizeKeyboard } from "../utils/messages";
 import { getCurrentLesson, getCurrentWeekLessons, getFirstWeekLessons, getNextDayLessons, getNextLesson, getNextWeekLessons, getSecondWeekLessons, getTodayLessons, getTomorrowLessons } from '../utils/lessons';
-import { formatCapitalize, formatChatSettings, formatGroupName, formatLessonsDay, formatLessonsWeek, formatSingleLesson, formatTimeDefinition } from "../utils/format";
-import { getBreak, getLessonDates, getSemester, getWeek } from "../utils/times";
+import { formatCapitalize, formatChatSettings, formatDateLabels, formatGroupName, formatLessonsDay, formatLessonsWeek, formatSingleLesson, formatTimeDefinition } from "../utils/format";
+import { getBreak, getLessonDates, getLessonNumber, getSemester, getWeek } from "../utils/times";
 import moment from "moment-timezone";
+import { getWeekend } from "../utils/weekends";
 
 export default class CommandsInterface{
     BIND_COMMAND_STAGES = {
@@ -40,6 +41,57 @@ export default class CommandsInterface{
      */
     constructor(client){
         this.client = client;
+        this.currentLessonNumber = getLessonNumber();
+    }
+
+    async startNotificationsSend(type){
+        let chats = await this.client.rozklad.chats.getChatsForNotification(type);
+        let target;
+        switch(type){
+            case 'beforeNotif': target = 'next'; break;
+            case 'nowNofif': target = 'current'; break;
+            default: return;
+        }
+        const iterate = async () => {
+            let chatData = chats.shift();
+            if (!chatData) return;
+            setTimeout(iterate, 300);
+            let scheduleData = await this.client.rozklad.schedules.fetchGroupSchedule(chatData.groupUUID);
+            if (!scheduleData) return;
+            let lessonData = getCurrentLesson(scheduleData.data);
+            if (!lessonData.result) return;
+            let links = await this.client.rozklad.links.getLessonLinks({
+                chatId: chatData.id,
+                parentChatId: chatData.parentChatId,
+                hash: lessonData.result.hash,
+                date: lessonData.date,
+            });
+            let labels = formatDateLabels(lessonData.date);
+            let msgText = l(`lesson.targets.${target}.format`, {
+                groupName: scheduleData.name,
+                lessonText: formatSingleLesson(lessonData.result, lessonData.number, links),
+                timeDiff: labels.diff,
+                timeLabel: labels.label
+            })
+            this.client.sendMessage(chatData.id, msgText, {
+                parse_mode: 'HTML',
+                disable_web_page_preview: true
+            }).catch(e => null)
+        }
+        iterate();
+    }
+    startNotificationsLoop(){
+        setInterval(() => {
+            let newLessonNumber = getLessonNumber();
+            if (this.currentLessonNumber === newLessonNumber) return;
+            this.currentLessonNumber = newLessonNumber;
+            let lessonDates = getLessonDates();
+            if (lessonDates.isDayStart || lessonDates.isDayEnd || getWeekend()) return;
+            let beforeDiff = moment().diff(moment(lessonDates.lessonStart).add(-15, 'minutes'), 'milliseconds');
+            let nowDiff = moment().diff(moment(lessonDates.lessonStart), 'milliseconds');
+            setTimeout(() => this.startNotificationsSend('beforeNotif'), beforeDiff);
+            setTimeout(() => this.startNotificationsSend('nowNotif'), nowDiff);
+        }, 60000)
     }
 
     async canUseAdminCommands(chatId, memberId){
@@ -129,13 +181,13 @@ export default class CommandsInterface{
                     let groupNames = await this.client.rozklad.schedules.fetchGroupsName(data);
                     switch(groupNames.length){
                         case 0: {
-                            return void this.client.sendMessage(
+                            return this.client.sendMessage(
                                 chatId, l('bind.messages.stageName.notFound'), 
                                 messageOptions()
                             )
                         }
                         case 1: {
-                            return void this.client.sendMessage(
+                            return this.client.sendMessage(
                                 chatId, l('bind.messages.stageName.foundOne', groupNames[0]),
                                 messageOptions(
                                     localizeKeyboard([[
@@ -152,7 +204,7 @@ export default class CommandsInterface{
                             )
                         }
                         default: {
-                            return void this.client.sendMessage(
+                            return this.client.sendMessage(
                                 chatId, l('bind.messages.stageName.foundMultiple'),
                                 messageOptions([
                                     ...groupNames.map(groupName => {
@@ -176,7 +228,7 @@ export default class CommandsInterface{
                     let groupData = await this.client.rozklad.schedules.fetchGroupsData(data);
                     switch(groupData.length){
                         case 0: {
-                            return void this.client.sendMessage(
+                            return this.client.sendMessage(
                                 chatId, l('bind.messages.stageData.notFound'), 
                                 messageOptions()
                             )
@@ -185,7 +237,7 @@ export default class CommandsInterface{
                             data = groupData[0].uuid; break;
                         }
                         default: {
-                            return void this.client.sendMessage(
+                            return this.client.sendMessage(
                                 chatId, l('bind.messages.stageData.foundMultiple', { name: data }),
                                 messageOptions([
                                     ...groupData.map(group => {
@@ -208,11 +260,15 @@ export default class CommandsInterface{
                 case this.BIND_COMMAND_STAGES.END: {
                     let groupSchedule = await this.client.rozklad.schedules.fetchGroupSchedule(data);
                     if (!groupSchedule) {
-                        return void this.client.sendMessage(chatId, l('bind.messages.stageEnd.notFound'), messageOptions())
+                        return this.client.sendMessage(chatId, l('bind.messages.stageEnd.notFound'), messageOptions())
                     }
                     let chatData = await this.client.rozklad.chats.fetchChat(chatId);
-                    await chatData.update({ groupUUID: groupSchedule.uuid });
-                    return void this.client.sendMessage(chatId, l('bind.messages.stageEnd.success', groupSchedule), messageOptions())
+                    let isFirstBind = chatData.isFirstBind;
+                    await chatData.update({ groupUUID: groupSchedule.uuid, isFirstBind: false });
+                    return this.client.sendMessage(
+                        chatId, l(`bind.messages.stageEnd.${isFirstBind ? 'successFirst' : 'success'}`, groupSchedule), 
+                        messageOptions()
+                    )
                 }
             }
         } catch(e){
@@ -353,9 +409,9 @@ export default class CommandsInterface{
                         hash: lessonData.result.hash,
                         date: lessonData.date,
                     });
-                    let labels = dateLabels(lessonData.date);
+                    let labels = formatDateLabels(lessonData.date);
                     if (target === 'current' && getBreak()) target = 'next';
-                    msgText = l('lesson.targets.' + target + '.format', {
+                    msgText = l('lesson.targets.' + target + '.message', {
                         groupName: scheduleData.name,
                         lessonText: formatSingleLesson(lessonData.result, lessonData.number, links),
                         timeDiff: labels.diff,
@@ -376,8 +432,8 @@ export default class CommandsInterface{
             case 'tomorrow':
             case 'nextday': {
                 if (lessonData.result && lessonData.result.count) {
-                    let labels = dateLabels(lessonData.date);
-                    msgText = l('lesson..targets.' + target + '.format', {
+                    let labels = formatDateLabels(lessonData.date);
+                    msgText = l('lesson..targets.' + target + '.message', {
                         groupName: scheduleData.name,
                         lessonText: formatLessonsDay(lessonData.result, !chatData.hideTime, !chatData.hideTeachers, false),
                         timeLabel: labels.label
@@ -400,17 +456,24 @@ export default class CommandsInterface{
                 let currentWeek = getWeek();
                 let resultWeek = getWeek(lessonData.date);
                 let isCurrentWeek = currentWeek === resultWeek;
-                let title = l('lesson.templates.week.titleFormat', {
+                let title = l('lesson.templates.week.title', {
                     weekNumberText: l('utils.weeksNumber.' + resultWeek),
                     isCurrentWeekText: l('utils.currentWeek.' + isCurrentWeek).toLowerCase(),
                     groupName: scheduleData.name,
-                    ...dateLabels(lessonData.date)
+                    ...formatDateLabels(lessonData.date)
                 })
                 let showTeachers = options.showTeachers ?? !chatData.hideTeachers;
+                let isTooLong = false;
                 msgText = l('lesson.templates.week.message', {
-                    title,
-                    lessonText: formatLessonsWeek(lessonData.result, !chatData.hideTime, showTeachers),
+                    title, lessonText: formatLessonsWeek(lessonData.result, showTeachers),
                 })
+                if (msgText.length > 4096) {
+                    isTooLong = true;
+                    msgText = l('lesson.templates.week.message', {
+                        title, lessonText: formatLessonsWeek(lessonData.result, false),
+                    })
+                }
+                if (msgText.length > 4096) msgText = l('lesson.messages.tooLong');
                 let oppositeWeek = resultWeek ^ true;
   
                 keyboard = localizeKeyboard([[
@@ -418,11 +481,11 @@ export default class CommandsInterface{
                         text: 'lesson.buttons.' + (oppositeWeek ? 'secondWeek' : 'firstWeek'),
                         callback_data: `lesson?o=${Number(showTeachers)}&t=${oppositeWeek ? 'week_second' : 'week_first'}&d=${scheduleData.uuid}`
                     },
-                    {
+                    isTooLong ? null : {
                         text: 'lesson.buttons.' + (!showTeachers ? 'showTeachers' : 'hideTeachers'),
                         callback_data: `lesson?o=${Number(!showTeachers)}&t=${resultWeek ? 'week_second' : 'week_first'}&d=${scheduleData.uuid}`
                     }
-                ]])
+                ].filter(Boolean)])
             }
         }
         if (options.edit) this.client.editMessageText(msgText, messageOptions(keyboard)).catch(e => console.error(String(e)));
@@ -475,6 +538,12 @@ export default class CommandsInterface{
                     })
                     break;
                 }
+                case 'removeParent': {
+                    chatData = await chatData.update({
+                        parentChatId: null
+                    })
+                    break;
+                }
                 default: break;
             }
         }
@@ -501,11 +570,15 @@ export default class CommandsInterface{
                 text: `settings.buttons.toggleLinks.${chatData.ignoreLinks}`,
                 callback_data: `settings?k=ignoreLinks&b=${Number(!chatData.ignoreLinks)}`
             }],
+            chatData.parentChatId ? [{
+                text: `settings.buttons.removeParent`,
+                callback_data: `settings?k=removeParent`
+            }] : null,
             [{
                 text: 'settings.buttons.close',
                 callback_data: 'delete?u=' + userId
             }]
-        ])
+        ].filter(Boolean))
         if (query){
             this.client.editMessageText(msgText, {
                 chat_id: chatId,
@@ -733,5 +806,59 @@ export default class CommandsInterface{
             deleteId: params.d,
             hash: params.h
         })
+    }
+
+    async shareLinks(msg){
+        let chatId = msg.chat.id;
+        let userId = msg.from.id;
+        let messageId = msg.message_id;
+
+        if (chatId > 0){
+            return this.client.sendMessage(chatId,
+                'Цю команду можна використовувати лише у групових чатах.',
+                { reply_to_message_id: messageId }
+            )
+        }
+        if (!await this.canUseAdminCommands(chatId, userId)){
+            return this.client.sendMessage(chatId,
+                'Цю команду можуть використовувати лише адміністратори чату.',
+                { reply_to_message_id: messageId }
+            )
+        }
+        this.client.sendMessage(chatId, l('linksShare.messages.message'), {
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: localizeKeyboard([[{
+                    text: 'linksShare.buttons.add',
+                    url: `https://t.me/${this.client.me.username}?start=${msg.chat.id}`
+                }]])
+            }
+        })
+    }
+    async shareLinksMessage(msg, args){
+        this.shareLinks(msg);
+    }
+
+    async sendStart(msg, parentId){
+        const fallback = () => this.client.sendMessage(msg.chat.id, l('start.messages.message'));
+        if (!parentId) return fallback();
+        let member = await this.client.getChatMember(parentId, msg.from.id);
+        if (!['creator', 'member', 'administrator'].includes(member.status)) return fallback()
+        let [msgChatData, targetChatData] = await Promise.all([
+            this.client.rozklad.chats.fetchChat(msg.chat.id),
+            this.client.rozklad.chats.fetchChat(parentId),
+        ])
+        let isFirstBind = msgChatData.isFirstBind;
+        msgChatData.update({
+            groupUUID: targetChatData.groupUUID,
+            parentChatId: targetChatData.id,
+            isFirstBind: false
+        })
+        this.client.sendMessage(
+            msg.chat.id, l(`start.messages.${isFirstBind ? 'parentAddedFirst' : 'parentAdded'}`)
+        )
+    }
+    async sendStartMessage(msg, args){
+        this.sendStart(msg, args[0]);
     }
 }

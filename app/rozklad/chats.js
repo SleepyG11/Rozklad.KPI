@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import db, { Chats } from '../database';
 
 import CacheMap from '../utils/cache';
@@ -10,6 +11,16 @@ export default class ChatsManager{
         this.chatQueues = new Map();
     }
 
+    async getChatsForNotification(type){
+        return Chats.findAll({
+            where: {
+                groupUUID: {
+                    [Op.not]: null
+                },
+                [type]: true,
+            }
+        })
+    }
     async searchChat(id, mode = 'database'){
         id = +id;
         switch(mode){

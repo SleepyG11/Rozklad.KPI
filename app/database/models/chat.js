@@ -39,6 +39,11 @@ export default function chatInit(sequelize){
             allowNull: false,
             defaultValue: false
         },
+        isFirstBind: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true
+        }
     }, {
         createdAt: true,
         updatedAt: true,

@@ -24,6 +24,7 @@ export default class TelegramClient extends TelegramBot{
         }
 
         this.getMe().then(me => {
+            this.me = me;
             this.on('message', msg => {
                 let text = msg.text ?? msg.caption;
                 if (!text) return;

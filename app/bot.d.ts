@@ -1,4 +1,4 @@
-import TelegramBot, { Message, CallbackQuery, ConstructorOptions } from 'node-telegram-bot-api';
+import TelegramBot, { Message, CallbackQuery, ConstructorOptions, User } from 'node-telegram-bot-api';
 import { EventEmitter } from 'node:events';
 import ChatsManager from './rozklad/chats';
 import SchedulesManager from './rozklad/schedules';
@@ -34,6 +34,8 @@ export default class TelegramClient extends TelegramBot{
         commands: CommandsInterface,
         links: LinksManager,
     }
+
+    me?: User
 
     constructor(token: string, options: ConstructorOptions)
 

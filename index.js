@@ -55,11 +55,20 @@ for (let linkType in LINK_TYPES){
 client.queries.on('link', (query, params) => {
     client.rozklad.commands.addLessonLinkCallbackQuery(query, params);
 })
+client.commands.on('links_share', (msg, args) => {
+    client.rozklad.commands.shareLinksMessage(msg, args);
+})
 client.commands.on('links_delete', (msg, args) => {
     client.rozklad.commands.deleteLessonLinkMessage(msg, args);
 })
 client.queries.on('linkdel', (query, params) => {
     client.rozklad.commands.deleteLessonLinkCallbackQuery(query, params);
+})
+
+// ------------------------
+
+client.commands.on('start', (msg, args) => {
+    client.rozklad.commands.sendStartMessage(msg, args);
 })
 
 // ------------------------
@@ -70,6 +79,7 @@ client.queries.on('delete', (query, params) => {
 })
 
 db.sync({ alter: true }).then(() => {
+    client.rozklad.commands.startNotificationsLoop();
     client.startPolling({ polling: { interval: 1000 } });
     console.log('Bot started.')
 })

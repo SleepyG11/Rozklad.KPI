@@ -1,5 +1,6 @@
 import { l } from "./messages";
 import moment from 'moment-timezone';
+import { getLessonDates } from "./times";
 
 export function formatGroupName(name = ''){
     return name.trim().toLowerCase().replace(/^[а-яіїєґ]{2}\-/i, (match) => match.toUpperCase());
@@ -78,6 +79,16 @@ export function formatTimeDefinition(date){
     }
 }
 
+export function formatDateLabels(date){
+    let inputDate = moment(date);
+    return {
+        diff: formatTimeDefinition(getLessonDates(inputDate).lessonStart).toLowerCase(),
+        label: formatCapitalize(inputDate.format('dddd, DD MMMM')),
+        dayOfWeek: inputDate.format('dddd'),
+        dayOfMonth: inputDate.format('DD MMMM'),
+    }
+}
+
 export function formatSingleLesson(lesson, number, links){
     let lessonRooms = l(
         'lesson.templates.single.rooms.' + countToLocalize(lesson.rooms.length),
@@ -142,7 +153,7 @@ export function formatLessonsDay(day, time = false, teachers = false, skipEmpty 
     return formattedLessons.join('\n');
 }
 
-export function formatLessonsWeek(week, time = false, teachers = false){
+export function formatLessonsWeek(week, teachers = false){
     let formattedDays = [];
     let maxDayToShow = week[5].count ? 5 : 4;
     for (let dayNumber = 0; dayNumber <= maxDayToShow; dayNumber++){
@@ -174,5 +185,8 @@ export function formatChatSettings(chat, schedule){
         spotLinksText: activeText(!chat.ignoreLinks),
         beforeNotifText: activeText(chat.beforeNotif),
         nowNotifText: activeText(chat.nowNotif),
+        hasParentText: chat.parentChatId ? l('settings.templates.hasParent', {
+            status: activeText(true)
+        }) : ''
     })
 }

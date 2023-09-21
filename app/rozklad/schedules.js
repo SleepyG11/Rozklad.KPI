@@ -28,8 +28,8 @@ export default class SchedulesManager{
     constructor(client){
         this.client = client;
 
-        this.scheduleCache = new CacheMap(600);
-        this.dataCache = new CacheMap(600);
+        this.scheduleCache = new CacheMap(7200);
+        this.dataCache = new CacheMap(7200);
 
         this.scheduleQueues = new Map();
         this.nameQueues = new Map();
