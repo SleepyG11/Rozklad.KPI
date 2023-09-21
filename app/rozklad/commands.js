@@ -433,7 +433,7 @@ export default class CommandsInterface{
             case 'nextday': {
                 if (lessonData.result && lessonData.result.count) {
                     let labels = formatDateLabels(lessonData.date);
-                    msgText = l('lesson..targets.' + target + '.message', {
+                    msgText = l('lesson.targets.' + target + '.message', {
                         groupName: scheduleData.name,
                         lessonText: formatLessonsDay(lessonData.result, !chatData.hideTime, !chatData.hideTeachers, false),
                         timeLabel: labels.label
@@ -840,7 +840,7 @@ export default class CommandsInterface{
     }
 
     async sendStart(msg, parentId){
-        const fallback = () => this.client.sendMessage(msg.chat.id, l('start.messages.message'));
+        const fallback = () => this.client.sendMessage(msg.chat.id, l('start.messages.message'), { parse_mode: 'HTML' });
         if (!parentId) return fallback();
         let member = await this.client.getChatMember(parentId, msg.from.id);
         if (!['creator', 'member', 'administrator'].includes(member.status)) return fallback()
@@ -855,7 +855,8 @@ export default class CommandsInterface{
             isFirstBind: false
         })
         this.client.sendMessage(
-            msg.chat.id, l(`start.messages.${isFirstBind ? 'parentAddedFirst' : 'parentAdded'}`)
+            msg.chat.id, l(`start.messages.${isFirstBind ? 'parentAddedFirst' : 'parentAdded'}`),
+            { parse_mode: 'HTML', disable_web_page_preview: true }
         )
     }
     async sendStartMessage(msg, args){
