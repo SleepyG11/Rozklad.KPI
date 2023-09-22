@@ -1,6 +1,7 @@
-import { l } from "./messages";
 import moment from 'moment-timezone';
+
 import { getLessonDates } from "./times";
+import { l } from "./messages";
 
 export function formatGroupName(name = ''){
     return name.trim().toLowerCase().replace(/^[а-яіїєґ]{2}\-/i, (match) => match.toUpperCase());

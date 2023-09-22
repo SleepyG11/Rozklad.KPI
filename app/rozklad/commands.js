@@ -1,9 +1,10 @@
+import moment from "moment-timezone";
+
 import TelegramClient from "../bot";
 import { l, localizeKeyboard } from "../utils/messages";
 import { getCurrentLesson, getCurrentWeekLessons, getFirstWeekLessons, getNextDayLessons, getNextLesson, getNextWeekLessons, getSecondWeekLessons, getTodayLessons, getTomorrowLessons } from '../utils/lessons';
-import { formatCapitalize, formatChatSettings, formatDateLabels, formatGroupName, formatLessonsDay, formatLessonsWeek, formatSingleLesson, formatTimeDefinition } from "../utils/format";
+import { formatChatSettings, formatDateLabels, formatGroupName, formatLessonsDay, formatLessonsWeek, formatSingleLesson } from "../utils/format";
 import { getBreak, getLessonDates, getLessonNumber, getSemester, getWeek } from "../utils/times";
-import moment from "moment-timezone";
 import { getWeekend } from "../utils/weekends";
 
 export default class CommandsInterface{
@@ -49,7 +50,7 @@ export default class CommandsInterface{
         let target;
         switch(type){
             case 'beforeNotif': target = 'next'; break;
-            case 'nowNofif': target = 'current'; break;
+            case 'nowNotif': target = 'current'; break;
             default: return;
         }
         const iterate = async () => {
@@ -67,7 +68,7 @@ export default class CommandsInterface{
                 date: lessonData.date,
             });
             let labels = formatDateLabels(lessonData.date);
-            let msgText = l(`lesson.targets.${target}.format`, {
+            let msgText = l(`lesson.targets.${target}.message`, {
                 groupName: scheduleData.name,
                 lessonText: formatSingleLesson(lessonData.result, lessonData.number, links),
                 timeDiff: labels.diff,
@@ -87,10 +88,10 @@ export default class CommandsInterface{
             this.currentLessonNumber = newLessonNumber;
             let lessonDates = getLessonDates();
             if (lessonDates.isDayStart || lessonDates.isDayEnd || getWeekend()) return;
-            let beforeDiff = moment().diff(moment(lessonDates.lessonStart).add(-15, 'minutes'), 'milliseconds');
-            let nowDiff = moment().diff(moment(lessonDates.lessonStart), 'milliseconds');
-            setTimeout(() => this.startNotificationsSend('beforeNotif'), beforeDiff);
-            setTimeout(() => this.startNotificationsSend('nowNotif'), nowDiff);
+            let beforeDate = moment(lessonDates.lessonStart).add(-15, 'minutes');
+            let nowDate = moment(lessonDates.lessonStart);
+            setTimeout(() => this.startNotificationsSend('beforeNotif'), beforeDate.diff());
+            setTimeout(() => this.startNotificationsSend('nowNotif'), nowDate.diff());
         }, 60000)
     }
 
@@ -327,15 +328,6 @@ export default class CommandsInterface{
                 reply_markup: {
                     inline_keyboard: keyboard
                 }
-            }
-        }
-        const dateLabels = (date) => {
-            let inputDate = moment(date);
-            return {
-                diff: formatTimeDefinition(getLessonDates(inputDate).lessonStart).toLowerCase(),
-                label: formatCapitalize(inputDate.format('dddd, DD MMMM')),
-                dayOfWeek: inputDate.format('dddd'),
-                dayOfMonth: inputDate.format('DD MMMM'),
             }
         }
 

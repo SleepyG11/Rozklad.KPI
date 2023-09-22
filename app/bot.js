@@ -1,6 +1,7 @@
 import { AbortError } from 'node-fetch';
 import TelegramBot from 'node-telegram-bot-api';
 import { EventEmitter } from 'node:events';
+
 import ChatsManager from './rozklad/chats';
 import SchedulesManager from './rozklad/schedules';
 import CommandsInterface from './rozklad/commands';

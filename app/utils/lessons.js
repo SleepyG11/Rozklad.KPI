@@ -74,9 +74,17 @@ export function getTodayLessons(schedule = [], date){
     if (getWeekend(date)) return {
         result: null, reason: 'weekend'
     }
+    let scheduleDay = schedule[getDayIndex(date)];
+    if (!scheduleDay.count) {
+        return {
+            result: null,
+            date: moment(date).startOf('d'),
+            reason: 'notFound',
+        }
+    }
     return {
         date: moment(date).startOf('d'),
-        result: schedule[getDayIndex(date)]
+        result: scheduleDay
     };
 }
 export function getTomorrowLessons(schedule = [], date){

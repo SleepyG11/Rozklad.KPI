@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
-import db, { Links } from '../database';
 import moment from 'moment-timezone';
+
+import db, { Links } from '../database';
 
 export default class LinksManager{
     constructor(client){
