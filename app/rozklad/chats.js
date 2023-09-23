@@ -46,4 +46,12 @@ export default class ChatsManager{
         this.chatsCache.set(id, fetched);
         return fetched;
     }
+
+    async clear(){
+        Chats.update({
+            groupUUID: null
+        }).finally(() => {
+            this.chatsCache.forEach(chat => chat.groupUUID = null);
+        })
+    }
 }

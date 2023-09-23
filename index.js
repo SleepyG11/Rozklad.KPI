@@ -70,16 +70,28 @@ client.queries.on('linkdel', (query, params) => {
 client.commands.on('start', (msg, args) => {
     client.rozklad.commands.sendStartMessage(msg, args);
 })
+client.commands.on('about', msg => {
+    client.rozklad.commands.sendAboutMessage(msg);
+})
+client.commands.on('help', msg => {
+    client.rozklad.commands.sendHelpMessage(msg);
+})
 
 // ------------------------
 
 client.queries.on('delete', (query, params) => {
-    if (params.u && params.u != query.from.id) return;
-    client.deleteMessage(query.message.chat.id, query.message.message_id).catch(e => null);
+    client.rozklad.commands.deleteCallbackQuery(query, params);
 })
 
 db.sync({ alter: true }).then(() => {
     client.rozklad.commands.startNotificationsLoop();
-    client.startPolling({ polling: { interval: 1000 } });
+    client.rozklad.commands.startSemesterClearLoop();
+    client.startPolling({ 
+        polling: { 
+            interval: 1250, params: { 
+                allowed_updates: ['callback_query', 'message']
+            } 
+        } 
+    });
     console.log('Bot started.')
 })

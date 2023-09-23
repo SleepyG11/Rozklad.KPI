@@ -43,6 +43,7 @@ export default class CommandsInterface{
     constructor(client){
         this.client = client;
         this.currentLessonNumber = getLessonNumber();
+        this.currentSemesterNumber = getSemester();
     }
 
     async startNotificationsSend(type){
@@ -95,6 +96,17 @@ export default class CommandsInterface{
         }, 60000)
     }
 
+    startSemesterClearLoop(){
+        setInterval(() => {
+            let newSemesterNumber = getSemester();
+            if (this.currentSemesterNumber === newSemesterNumber) return;
+            this.currentSemesterNumber = newSemesterNumber;
+            this.client.rozklad.chats.clear();
+            this.client.rozklad.schedules.clear();
+            this.client.rozklad.links.clear();
+        }, 60000)
+    }
+
     async canUseAdminCommands(chatId, memberId){
         if (chatId > 0) return true;
         let member = await this.client.getChatMember(chatId, memberId);
@@ -119,17 +131,37 @@ export default class CommandsInterface{
     async getScheduleOrNotifyIfNotExists(msg, chat){
         let scheduleData = await this.client.rozklad.schedules.fetchGroupSchedule(chat.groupUUID);
         if (scheduleData && scheduleData.data) return scheduleData;
-        
         return null;
     }
     async deleteMessageIfNoReply(query){
-        if (!query.message.reply_to_message) {
-            this.client.deleteMessage(query.message.chat.id, query.message.message_id).catch(e => null);
-            this.client.sendMessage(query.message.chat.id, 'Цільове повідомлення було видалено.')
-            return true;
-        }
-        if (query.from.id !== query.message.reply_to_message.from.id) return true;
-        return false;
+        if (query.message.reply_to_message) return false;
+        this.client.deleteMessage(query.message.chat.id, query.message.message_id).catch(e => null);
+        this.client.sendMessage(query.message.chat.id, l('global.replyMessageDeleted'))
+        return true;
+    }
+
+    async rejectIfNotButtonAuthor(query){
+        if (query.from.id == query.message.reply_to_message.from.id) return false;
+        this.client.answerCallbackQuery(query.id, {
+            text: l('global.cantUseButton')
+        })
+        return true;
+    }
+    async rejectIfNotChatAdmin(msg){
+        if (await this.canUseAdminCommands(msg.chat.id, msg.from.id)) return false;
+        this.client.sendMessage(msg.chat.id,
+            l('global.cantUseAdminCommand'),
+            { reply_to_message_id: msg.message_id }
+        )
+        return true;
+    }
+    async rejectIfNotGroupChat(msg){
+        if (msg.chat.id < 0) return false;
+        this.client.sendMessage(msg.chat.id,
+            l('global.groupChatOnly'),
+            { reply_to_message_id: msg.message_id }
+        )
+        return true;
     }
 
     async bindGroup(msg, stage = this.BIND_COMMAND_STAGES.START, data){
@@ -147,13 +179,6 @@ export default class CommandsInterface{
                     inline_keyboard: keyboard
                 }
             }
-        }
-
-        if (!await this.canUseAdminCommands(chatId, userId)){
-            return void this.client.sendMessage(chatId,
-                'Цю команду можуть використовувати лише адміністратори чату.',
-                messageOptions()
-            )
         }
 
         try {
@@ -198,7 +223,7 @@ export default class CommandsInterface{
                                         },
                                         {
                                             text: 'bind.buttons.stageName.cancel',
-                                            callback_data: 'delete'
+                                            callback_data: 'delete?u=' + userId
                                         }
                                     ]])
                                 )
@@ -217,7 +242,7 @@ export default class CommandsInterface{
                                     localizeKeyboard([
                                         {
                                             text: 'bind.buttons.stageName.hide',
-                                            callback_data: 'delete'
+                                            callback_data: 'delete?u=' + userId
                                         }
                                     ])
                                 ])
@@ -250,7 +275,7 @@ export default class CommandsInterface{
                                     [
                                         {
                                             text: l('bind.buttons.stageData.hide'),
-                                            callback_data: 'delete'
+                                            callback_data: 'delete?u=' + userId
                                         }
                                     ]
                                 ])
@@ -277,10 +302,12 @@ export default class CommandsInterface{
         }
     }
     async bindGroupMessage(msg, args){
+        if (await this.rejectIfNotChatAdmin(msg)) return;
         args[0] ? this.bindGroup(msg, this.BIND_COMMAND_STAGES.NAME, args[0]) : this.bindGroup(msg);
     }
     async bindGroupCallbackQuery(query, params){
         if (await this.deleteMessageIfNoReply(query)) return;
+        if (await this.rejectIfNotButtonAuthor(query)) return;
         this.client.deleteMessage(query.message.chat.id, query.message.message_id).catch(e => null);
         this.bindGroup(query.message.reply_to_message, params.s, params.d);
     }
@@ -290,20 +317,14 @@ export default class CommandsInterface{
         let userId = msg.from.id;
         let messageId = msg.message_id;
 
-        if (!await this.canUseAdminCommands(chatId, userId)){
-            return void this.client.sendMessage(chatId,
-                'Цю команду можуть використовувати лише адміністратори чату.',
-                { reply_to_message_id: messageId }
-            )
-        }
-
         let chatData = await this.client.rozklad.chats.fetchChat(chatId);
         await chatData.update({ groupUUID: null });
-        this.client.sendMessage(chatId, 'Група успішно видалена.', {
+        this.client.sendMessage(chatId, l('unbind.messages.success'), {
             reply_to_message_id: messageId
         })
     }
     async unbindGroupMessage(msg, args){
+        if (await this.rejectIfNotChatAdmin(msg)) return;
         this.unbindGroup(msg);
     }
 
@@ -502,21 +523,6 @@ export default class CommandsInterface{
         let userId = userMsg.from.id;
         let messageId = userMsg.message_id;
 
-        if (query){
-            if (userMsg.from.id != query.from.id){
-                return void this.client.answerCallbackQuery(query.id, {
-                    text: 'Ви не можете використовувати ці кнопки.'
-                })
-            }
-        } else {
-            if (!await this.canUseAdminCommands(chatId, userId)){
-                return void this.client.sendMessage(chatId,
-                    'Цю команду можуть використовувати лише адміністратори чату.',
-                    { reply_to_message_id: messageId }
-                )
-            }
-        }
-
         let chatData = await this.client.rozklad.chats.fetchChat(chatId);
         if (query){
             switch(params.k){
@@ -586,10 +592,12 @@ export default class CommandsInterface{
         }
     }
     async sendSettingsMessage(msg, args){
+        if (await this.rejectIfNotChatAdmin(msg)) return;
         this.sendSettings(msg);
     }
     async sendSettingsCallbackQuery(query, params){
         if (await this.deleteMessageIfNoReply(query)) return;
+        if (await this.rejectIfNotButtonAuthor(query)) return;
         this.sendSettings(query.message.reply_to_message, query.message, query, params);
     }
 
@@ -719,6 +727,7 @@ export default class CommandsInterface{
     }
     async addLessonLinkCallbackQuery(query, params){
         if (await this.deleteMessageIfNoReply(query)) return;
+        if (await this.rejectIfNotButtonAuthor(query)) return;
         this.addLessonLink(query.message.reply_to_message, query.message, params.s, {
             linkId: params.d
         })
@@ -780,7 +789,7 @@ export default class CommandsInterface{
             }),
             localizeKeyboard([{
                 text: 'linksDelete.buttons.close',
-                callback_data: 'delete'
+                callback_data: 'delete?u=' + msg.from.id
             }])
         ]
         if (options.edit){
@@ -793,10 +802,10 @@ export default class CommandsInterface{
         this.deleteLessonLink(msg);
     }
     async deleteLessonLinkCallbackQuery(query, params){
+        if (await this.deleteMessageIfNoReply(query)) return;
+        if (await this.rejectIfNotButtonAuthor(query)) return;
         this.deleteLessonLink(query.message, {
-            edit: true,
-            deleteId: params.d,
-            hash: params.h
+            edit: true, deleteId: params.d, hash: params.h
         })
     }
 
@@ -811,12 +820,6 @@ export default class CommandsInterface{
                 { reply_to_message_id: messageId }
             )
         }
-        if (!await this.canUseAdminCommands(chatId, userId)){
-            return this.client.sendMessage(chatId,
-                'Цю команду можуть використовувати лише адміністратори чату.',
-                { reply_to_message_id: messageId }
-            )
-        }
         this.client.sendMessage(chatId, l('linksShare.messages.message'), {
             parse_mode: 'HTML',
             reply_markup: {
@@ -828,6 +831,8 @@ export default class CommandsInterface{
         })
     }
     async shareLinksMessage(msg, args){
+        if (await this.rejectIfNotGroupChat(msg)) return;
+        if (await this.rejectIfNotChatAdmin(msg)) return;
         this.shareLinks(msg);
     }
 
@@ -853,5 +858,44 @@ export default class CommandsInterface{
     }
     async sendStartMessage(msg, args){
         this.sendStart(msg, args[0]);
+    }
+
+    async sendAbout(msg){
+        this.client.sendMessage(msg.chat.id, l('about.messages.message', {
+            botUsername: this.client.me.username,
+            botName: this.client.me.first_name,
+            scheduleHost: process.env.ROZKLAD_HOST
+        }), {
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+        })
+    }
+    async sendAboutMessage(msg){
+        this.sendAbout(msg);
+    }
+
+    async sendHelp(msg){
+        this.client.sendMessage(msg.chat.id, l('help.messages.message'), {
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+        })
+    }
+    async sendHelpMessage(msg){
+        this.sendHelp(msg);
+    }
+
+    async delete(msg){
+        this.client.deleteMessage(msg.chat.id, msg.message_id).catch(e => null);
+    }
+    async deleteMessage(msg, args){
+        this.delete(msg);
+    }
+    async deleteCallbackQuery(query, params){
+        if (params.u && params.u != query.from.id) {
+            return void this.client.answerCallbackQuery(query.id, {
+                text: l('global.cantUseButton')
+            })
+        };
+        this.delete(query.message);
     }
 }

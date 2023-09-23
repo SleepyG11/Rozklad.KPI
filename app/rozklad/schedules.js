@@ -38,7 +38,7 @@ export default class SchedulesManager{
 
     getSearchGroupsNameRequest(name = ''){
         return fetch(process.env.ROZKLAD_HOST + '/Schedules/ScheduleGroupSelection.aspx/GetGroups', {
-            signal: AbortSignal.timeout(3000),
+            signal: AbortSignal.timeout(2000),
             method: 'POST',
             headers: {
                 "accept": "*/*",
@@ -55,7 +55,7 @@ export default class SchedulesManager{
     }
     getSearchGroupsDataRequest(name = ''){
         return fetch(process.env.ROZKLAD_HOST + '/Schedules/ScheduleGroupSelection.aspx', {
-            signal: AbortSignal.timeout(3000),
+            signal: AbortSignal.timeout(2000),
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             redirect: 'manual',
@@ -71,7 +71,7 @@ export default class SchedulesManager{
     }
     getSearchGroupScheduleRequest(uuid = ''){
         return fetch(process.env.ROZKLAD_HOST + '/Schedules/ViewSchedule.aspx?g=' + uuid, {
-            signal: AbortSignal.timeout(5000),
+            signal: AbortSignal.timeout(4000),
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: "__EVENTTARGET=ctl00%24MainContent%24ddlSemesterType&"
@@ -353,5 +353,16 @@ export default class SchedulesManager{
         let fetched = await newQueue;
         this.scheduleCache.set(uuid, fetched);
         return fetched;
+    }
+
+    async clear(){
+        Schedules.destroy().finally(() => {
+            this.scheduleCache.clear();
+            this.dataCache.clear();
+
+            this.scheduleQueues.clear();
+            this.nameQueues.clear();
+            this.dataQueues.clear();
+        });
     }
 }
