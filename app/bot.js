@@ -6,6 +6,7 @@ import ChatsManager from './rozklad/chats';
 import SchedulesManager from './rozklad/schedules';
 import CommandsInterface from './rozklad/commands';
 import LinksManager from './rozklad/links';
+import AdminInterface from './rozklad/admin';
 
 const COMMAND_PREFIX_REGEXP = /^\/[^\s]/
 
@@ -22,6 +23,7 @@ export default class TelegramClient extends TelegramBot{
             schedules: new SchedulesManager(this),
             commands: new CommandsInterface(this),
             links: new LinksManager(this),
+            admin: new AdminInterface(this),
         }
 
         this.getMe().then(me => {
@@ -46,6 +48,8 @@ export default class TelegramClient extends TelegramBot{
             let [command, ...rawParams] = query.data.split('?');
             this.queries.emit(command, query, Object.fromEntries(new URLSearchParams(rawParams.join('?'))))
         })
+
+        this.on('polling_error', console.error);
     }
 
     awaitReplyToMessage(chatId, messageId, options = {}){

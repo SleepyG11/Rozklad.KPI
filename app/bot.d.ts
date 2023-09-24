@@ -1,9 +1,11 @@
 import TelegramBot, { Message, CallbackQuery, ConstructorOptions, User } from 'node-telegram-bot-api';
 import { EventEmitter } from 'node:events';
+
 import ChatsManager from './rozklad/chats';
 import SchedulesManager from './rozklad/schedules';
 import CommandsInterface from './rozklad/commands';
 import LinksManager from './rozklad/links';
+import AdminInterface from './rozklad/admin';
 
 const COMMAND_PREFIX_REGEXP = /^\/[^\s]/
 
@@ -33,6 +35,7 @@ export default class TelegramClient extends TelegramBot{
         schedules: SchedulesManager,
         commands: CommandsInterface,
         links: LinksManager,
+        admin: AdminInterface,
     }
 
     me?: User

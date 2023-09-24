@@ -79,9 +79,20 @@ client.commands.on('help', msg => {
 
 // ------------------------
 
+client.commands.on('eval', (msg, args) => {
+    client.rozklad.admin.eval(msg, args);
+})
+client.commands.on('admin_stats', (msg, args) => {
+    client.rozklad.admin.globalStats(msg, args);
+})
+
+// ------------------------
+
 client.queries.on('delete', (query, params) => {
     client.rozklad.commands.deleteCallbackQuery(query, params);
 })
+
+// ------------------------
 
 db.sync({ alter: true }).then(() => {
     client.rozklad.commands.startNotificationsLoop();
