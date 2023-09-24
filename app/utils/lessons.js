@@ -4,26 +4,19 @@ import { calculateLessonDates, getDayIndex, getLessonAndBreak, getLessonNumber, 
 import { getWeekend } from "./weekends";
 
 export function getCurrentLesson(schedule = [], date){
-    if (getWeekend(date)) return {
-        result: null, reason: 'weekend'
-    }
+    if (getWeekend(date)) return { result: null, reason: 'weekend' };
+
     let dayIndex = getDayIndex(date);
     let number = getLessonNumber(date);
     let lesson = schedule[dayIndex].lessons[number] ?? null;
-    if (!lesson) return {
-        result: null, reason: 'notFound'
-    }
+    if (!lesson) return { result: null, reason: 'notFound' };
+
     let dates = calculateLessonDates(date, number);
-    return {
-        date: dates.lessonStart,
-        number,
-        result: lesson
-    }
+    return { date: dates.lessonStart, number, result: lesson };
 }
 export function getNextLesson(schedule = [], date){
-    if (schedule.every(day => day.count === 0)) return {
-        result: null, reason: 'notFound'
-    };
+    if (schedule.every(day => day.count === 0)) return { result: null, reason: 'notFound' };
+
     let searchDate = moment(date);
     let searchDayIndex = getDayIndex(date);
     let lessonAndBreak = getLessonAndBreak(date);
@@ -38,16 +31,19 @@ export function getNextLesson(schedule = [], date){
         searchDate.add(1, 'd').startOf('d');
         searchDayIndex = (searchDayIndex + 1) % 14;
     }
+
     while(throttler--){
         let scheduleDay = schedule[searchDayIndex];
         if (scheduleDay.count === 0 || getWeekend(searchDate)){
             nextIteration(); continue;
         }
+
         if (!isFirstIteration) {
             searchNumber = scheduleDay.min;
             searchIsFound = true;
             break;
         }
+
         while(searchNumber <= scheduleDay.max){
             if (scheduleDay.lessons[searchNumber]) {
                 searchIsFound = true;
@@ -58,11 +54,10 @@ export function getNextLesson(schedule = [], date){
         if (searchIsFound) break;
         nextIteration();
     }
-    if (!searchIsFound) return {
-        result: null, reason: 'notFound'
-    };
-    let lessonDates = calculateLessonDates(searchDate, searchNumber);
 
+    if (!searchIsFound) return { result: null, reason: 'notFound' };
+
+    let lessonDates = calculateLessonDates(searchDate, searchNumber);
     return {
         date: lessonDates.lessonStart,
         number: searchNumber,
@@ -71,31 +66,20 @@ export function getNextLesson(schedule = [], date){
 }
 
 export function getTodayLessons(schedule = [], date){
-    if (getWeekend(date)) return {
-        result: null, reason: 'weekend'
-    }
+    if (getWeekend(date)) return { result: null, reason: 'weekend' }
+
     let scheduleDay = schedule[getDayIndex(date)];
-    if (!scheduleDay.count) {
-        return {
-            result: null,
-            date: moment(date).startOf('d'),
-            reason: 'notFound',
-        }
-    }
-    return {
-        date: moment(date).startOf('d'),
-        result: scheduleDay
-    };
+    let dayDate =  moment(date).startOf('d');
+    return scheduleDay.count
+        ? { result: scheduleDay, date: dayDate }
+        : { result: null, date: dayDate, reason: 'notFound' };
 }
 export function getTomorrowLessons(schedule = [], date){
-    return getTodayLessons(
-        schedule, moment(date).add(1, 'd')
-    );
+    return getTodayLessons(schedule, moment(date).add(1, 'd'));
 }
 export function getNextDayLessons(schedule = [], date){
-    if (schedule.every(day => day.count === 0)) return {
-        result: null, reason: 'notFound'
-    }
+    if (schedule.every(day => day.count === 0)) return { result: null, reason: 'notFound' };
+
     let searchDayIndex = getDayIndex(date);
     let searchDate = moment(date);
     let number = getLessonNumber(date);
@@ -103,19 +87,20 @@ export function getNextDayLessons(schedule = [], date){
         searchDayIndex = (searchDayIndex + 1) % 14;
         searchDate.add(1, 'd');
     }
+
     let iterationsCount = 100;
-    do {
+
+    while(iterationsCount--){
         let scheduleDay = schedule[searchDayIndex];
-        if (scheduleDay.count !== 0 && !getWeekend(searchDate)) return {
-            date: searchDate.startOf('d'),
-            result: scheduleDay
+        if (scheduleDay.count !== 0 && !getWeekend(searchDate)) {
+            return { result: scheduleDay, date: searchDate.startOf('d') };
         }
+
         searchDayIndex = (searchDayIndex + 1) % 14;
         searchDate.add(1, 'd');
-    } while (iterationsCount--)
-    return {
-        result: null, reason: 'notFound'
-    }
+    } 
+
+    return { result: null, reason: 'notFound' };
 }
 
 export function getCurrentWeekLessons(schedule = [], date){
@@ -126,21 +111,11 @@ export function getCurrentWeekLessons(schedule = [], date){
     }
 }
 export function getNextWeekLessons(schedule = [], date){
-    return getCurrentWeekLessons(
-        schedule, moment(date).add(1, 'w')
-    )
+    return getCurrentWeekLessons(schedule, moment(date).add(1, 'w'));
 }
 export function getFirstWeekLessons(schedule = [], date){
-    return getCurrentWeekLessons(
-        schedule, moment(date).add(
-            Number(getWeek(date) === 1), 'w'
-        )
-    )
+    return getCurrentWeekLessons(schedule, moment(date).add(getWeek(date) === 1, 'w'))
 }
 export function getSecondWeekLessons(schedule = [], date){
-    return getCurrentWeekLessons(
-        schedule, moment(date).add(
-            Number(getWeek(date) === 0), 'w'
-        )
-    )
+    return getCurrentWeekLessons(schedule, moment(date).add(getWeek(date) === 0, 'w'))
 }

@@ -1,17 +1,14 @@
 import parser, { NodeType } from 'node-html-parser';
-import fetch from 'node-fetch';
-import _ from 'lodash';
 import { Op } from 'sequelize';
 import { createHash } from 'crypto';
+import fetch from 'node-fetch';
+import _ from 'lodash';
 
 import db, { Names, Schedules } from '../database';
 
 import CacheMap from '../utils/cache';
 import { getSemester } from '../utils/times';
 import { formatGroupName } from '../utils/format';
-
-import { Name } from '../database/models/name';
-import { Schedule } from '../database/models/schedule';
 
 const LESSON_TYPE_REGEXP = /(?:Лек|Прак|Лаб)(?: on-line)?/;
 const PARSER_OPTIONS = {
@@ -88,18 +85,14 @@ export default class SchedulesManager{
     /**
      * @param {string} name 
      * @param {'api' | 'database'} mode 
-     * @returns {Promise<Name[]>}
+     * @returns {Promise<import('../database/models/name').Name[]>}
      */
     async searchGroupsName(name, mode = 'api'){
         name = formatGroupName(name);
         switch(mode){
             case 'database': {
                 return await Names.findAll({
-                    where: {
-                        name: {
-                            [Op.iLike]: name + '%'
-                        }
-                    },
+                    where: { name: { [Op.iLike]: name + '%' } },
                     order: [['name', 'ASC']]
                 })
             }
@@ -124,7 +117,7 @@ export default class SchedulesManager{
     /**
      * @param {string} name 
      * @param {'api' | 'database' | 'cache'} mode 
-     * @returns {Promise<Schedule[]>}
+     * @returns {Promise<import('../database/models/schedule').Schedule[]>}
      */
     async searchGroupsData(name, mode = 'api'){
         name = formatGroupName(name);
@@ -207,7 +200,7 @@ export default class SchedulesManager{
     /**
      * @param {string} uuid 
      * @param {'api' | 'database' | 'cache'} mode 
-     * @returns {Promise<Schedule | null>}
+     * @returns {Promise<import('../database/models/schedule').Schedule | null>}
      */
     async searchGroupSchedule(uuid, mode = 'api'){
         switch(mode){
@@ -320,6 +313,7 @@ export default class SchedulesManager{
     async fetchGroupsName(name){
         let queue = this.nameQueues.get(name);
         if (queue) return await queue;
+
         let newQueue = this.searchGroupsName(name, 'api');
         this.nameQueues.set(name, newQueue.finally(() => this.nameQueues.delete(name)));
         return await newQueue;
@@ -331,10 +325,12 @@ export default class SchedulesManager{
     async fetchGroupsData(name){
         let cached = await this.searchGroupsData(name, 'cache');
         if (cached) return cached;
+
         let queue = this.dataQueues.get(name);
         if (queue) return await queue;
         let newQueue = this.searchGroupsData(name, 'api');
         this.dataQueues.set(name, newQueue.finally(() => this.dataQueues.delete(name)));
+
         let fetched = await newQueue;
         this.dataCache.set(name, fetched);
         return fetched;
@@ -346,10 +342,12 @@ export default class SchedulesManager{
     async fetchGroupSchedule(uuid){
         let cached = await this.searchGroupSchedule(uuid, 'cache');
         if (cached) return cached;
+
         let queue = this.scheduleQueues.get(uuid);
         if (queue) return await queue;
         let newQueue = this.searchGroupSchedule(uuid, 'api');
         this.scheduleQueues.set(uuid, newQueue.finally(() => this.scheduleQueues.delete(uuid)));
+
         let fetched = await newQueue;
         this.scheduleCache.set(uuid, fetched);
         return fetched;

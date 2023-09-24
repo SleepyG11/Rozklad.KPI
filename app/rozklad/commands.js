@@ -1,11 +1,28 @@
 import moment from "moment-timezone";
 
-import TelegramClient from "../bot";
-import { l, localizeKeyboard } from "../utils/messages";
-import { getCurrentLesson, getCurrentWeekLessons, getFirstWeekLessons, getNextDayLessons, getNextLesson, getNextWeekLessons, getSecondWeekLessons, getTodayLessons, getTomorrowLessons } from '../utils/lessons';
-import { formatChatSettings, formatDateLabels, formatGroupName, formatLessonsDay, formatLessonsWeek, formatSingleLesson } from "../utils/format";
-import { getBreak, getLessonDates, getLessonNumber, getSemester, getWeek } from "../utils/times";
-import { getWeekend } from "../utils/weekends";
+import TelegramClient from '../bot';
+import { l, localizeKeyboard } from '../utils/messages';
+import {
+	getCurrentLesson,
+	getCurrentWeekLessons,
+	getFirstWeekLessons,
+	getNextDayLessons,
+	getNextLesson,
+	getNextWeekLessons,
+	getSecondWeekLessons,
+	getTodayLessons,
+	getTomorrowLessons,
+} from '../utils/lessons';
+import {
+	formatChatSettings,
+	formatDateLabels,
+	formatGroupName,
+	formatLessonsDay,
+	formatLessonsWeek,
+	formatSingleLesson,
+} from '../utils/format';
+import { getBreak, getLessonDates, getLessonNumber, getSemester, getWeek } from '../utils/times';
+import { getWeekend } from '../utils/weekends';
 
 export default class CommandsInterface{
     BIND_COMMAND_STAGES = {
@@ -58,10 +75,12 @@ export default class CommandsInterface{
             let chatData = chats.shift();
             if (!chatData) return;
             setTimeout(iterate, 300);
+
             let scheduleData = await this.client.rozklad.schedules.fetchGroupSchedule(chatData.groupUUID);
             if (!scheduleData) return;
             let lessonData = getCurrentLesson(scheduleData.data);
             if (!lessonData.result) return;
+
             let links = await this.client.rozklad.links.getLessonLinks({
                 chatId: chatData.id,
                 parentChatId: chatData.parentChatId,
@@ -69,6 +88,7 @@ export default class CommandsInterface{
                 date: lessonData.date,
             });
             let labels = formatDateLabels(lessonData.date);
+
             let msgText = l(`lesson.targets.${target}.message`, {
                 groupName: scheduleData.name,
                 lessonText: formatSingleLesson(lessonData.result, lessonData.number, links),
@@ -87,10 +107,12 @@ export default class CommandsInterface{
             let newLessonNumber = getLessonNumber();
             if (this.currentLessonNumber === newLessonNumber) return;
             this.currentLessonNumber = newLessonNumber;
+
             let lessonDates = getLessonDates();
             if (lessonDates.isDayStart || lessonDates.isDayEnd || getWeekend()) return;
             let beforeDate = moment(lessonDates.lessonStart).add(-15, 'minutes');
             let nowDate = moment(lessonDates.lessonStart);
+
             setTimeout(() => this.startNotificationsSend('beforeNotif'), beforeDate.diff());
             setTimeout(() => this.startNotificationsSend('nowNotif'), nowDate.diff());
         }, 60000)
@@ -101,6 +123,7 @@ export default class CommandsInterface{
             let newSemesterNumber = getSemester();
             if (this.currentSemesterNumber === newSemesterNumber) return;
             this.currentSemesterNumber = newSemesterNumber;
+
             this.client.rozklad.chats.clear();
             this.client.rozklad.schedules.clear();
             this.client.rozklad.links.clear();
@@ -115,6 +138,7 @@ export default class CommandsInterface{
     async getChatOrNotifyIfNotBinded(msg){
         let chatData = await this.client.rozklad.chats.fetchChat(msg.chat.id);
         if (chatData.groupUUID) return chatData;
+
         if (await this.canUseAdminCommands(msg.chat.id, msg.from.id)){
             this.client.sendMessage(msg.chat.id, 
                 l('lesson.messages.notBinded.asAdmin'), 
@@ -424,6 +448,7 @@ export default class CommandsInterface{
                     });
                     let labels = formatDateLabels(lessonData.date);
                     if (target === 'current' && getBreak()) target = 'next';
+
                     msgText = l('lesson.targets.' + target + '.message', {
                         groupName: scheduleData.name,
                         lessonText: formatSingleLesson(lessonData.result, lessonData.number, links),
@@ -433,6 +458,7 @@ export default class CommandsInterface{
                 } else {
                     msgText = l('lesson.targets.' + target + '.' + lessonData.reason, {
                         groupName: scheduleData.name,
+                        weekendName: getWeekend()?.toLowerCase()
                     })
                     if (target !== 'next') keyboard = localizeKeyboard([[{
                         text: 'lesson.buttons.nextLesson',
@@ -454,6 +480,7 @@ export default class CommandsInterface{
                 } else {
                     msgText = l('lesson.targets.' + target + '.' + lessonData.reason, {
                         groupName: scheduleData.name,
+                        weekendName: getWeekend(lessonData.date)?.toLowerCase(),
                     })
                     if (target !== 'nextday') keyboard = localizeKeyboard([[{
                         text: 'lesson.buttons.nextday',
@@ -469,6 +496,7 @@ export default class CommandsInterface{
                 let currentWeek = getWeek();
                 let resultWeek = getWeek(lessonData.date);
                 let isCurrentWeek = currentWeek === resultWeek;
+
                 let title = l('lesson.templates.week.title', {
                     weekNumberText: l('utils.weeksNumber.' + resultWeek),
                     isCurrentWeekText: l('utils.currentWeek.' + isCurrentWeek).toLowerCase(),
@@ -477,6 +505,7 @@ export default class CommandsInterface{
                 })
                 let showTeachers = options.showTeachers ?? !chatData.hideTeachers;
                 let isTooLong = false;
+
                 msgText = l('lesson.templates.week.message', {
                     title, lessonText: formatLessonsWeek(lessonData.result, showTeachers),
                 })
@@ -615,6 +644,7 @@ export default class CommandsInterface{
                     if (!scheduleData) return;
                     let lessonData = getCurrentLesson(scheduleData.data);
                     if (!lessonData.result) return;
+
                     let currentLinks = await this.client.rozklad.links.getLessonLinks({
                         chatId: chatData.id,
                         hash: lessonData.result.hash,
@@ -622,6 +652,7 @@ export default class CommandsInterface{
                         date: lessonData.date,
                     })
                     if (currentLinks.length > 3 || currentLinks.some(link => link.url === options.linkUrl)) return;
+
                     let lessonHash = lessonData.result.hash;
                     let linkData = await this.client.rozklad.links.createInactiveLink({
                         chatId, 
@@ -630,8 +661,9 @@ export default class CommandsInterface{
                         type: options.linkType,
                         expiresAt: lessonData.date.endOf('day').toDate(),
                     })
-                    let lessonName = lessonData.result.name;
-                    if (lessonName.length > 64) lessonName = lessonName.substring(0, 61) + '...';
+
+                    // let lessonName = lessonData.result.name;
+                    // if (lessonName.length > 64) lessonName = lessonName.substring(0, 61) + '...';
                     this.client.sendMessage(chatId, l('link.messages.stageStart.message'), {
                         parse_mode: 'HTML',
                         reply_to_message_id: messageId,
@@ -662,6 +694,7 @@ export default class CommandsInterface{
                 case this.LINK_COMMAND_STAGES.TEMP: {
                     let linkData = await this.client.rozklad.links.fetchLink(options.linkId);
                     if (!linkData) return this.addLessonLink(msg, this.LINK_COMMAND_STAGES.CANCEL, options);
+
                     linkData.update({
                         name: `${linkData.type} (тимч.)`,
                         active: true,
@@ -677,6 +710,7 @@ export default class CommandsInterface{
                 case this.LINK_COMMAND_STAGES.NAME: {
                     let linkData = await this.client.rozklad.links.fetchLink(options.linkId);
                     if (!linkData) return this.addLessonLink(userMsg, botMsg, this.LINK_COMMAND_STAGES.CANCEL, options);
+
                     this.client.deleteMessage(chatId, botMsg.message_id).catch(e => null);
                     let responseBotMsg = await this.client.sendMessage(chatId, l('link.messages.stageName.message'), {
                         parse_mode: 'HTML',
@@ -699,6 +733,7 @@ export default class CommandsInterface{
                             return true;
                         }
                     })
+
                     let semester = getSemester(linkData.createdAt);
                     linkData.update({
                         name: nameUserMsg.text,
@@ -734,20 +769,23 @@ export default class CommandsInterface{
     }
 
     async deleteLessonLink(msg, options = {}){
+        let chatId = msg.chat.id;
+        let userId = msg.from.id;
+        let messageId = msg.message_id;
         let lessonHash;
 
         const messageOptions = keyboard => {
             if (options.edit) return {
                 parse_mode: 'HTML',
-                chat_id: msg.chat.id,
-                message_id: msg.message_id,
+                chat_id: chatId,
+                message_id: messageId,
                 reply_markup: {
                     inline_keyboard: keyboard ?? []
                 }
             }
             return {
                 parse_mode: 'HTML',
-                reply_to_message_id: msg.message_id,
+                reply_to_message_id: messageId,
                 reply_markup: {
                     inline_keyboard: keyboard ?? []
                 }
@@ -761,25 +799,27 @@ export default class CommandsInterface{
             if (!scheduleData) return;
             let lessonData = getCurrentLesson(scheduleData.data);
             if (!lessonData.result) {
-                return this.client.sendMessage(msg.chat.id, l('linksDelete.messages.noLesson'), messageOptions());
+                return this.client.sendMessage(chatId, l('linksDelete.messages.noLesson'), messageOptions());
             };
             lessonHash = lessonData.result.hash;
         } else {
             lessonHash = options.hash;
         }
+
         if (options.deleteId) await this.client.rozklad.links.deleteLink(options.deleteId);
         let currentLinks = await this.client.rozklad.links.getLessonLinks({
-            chatId: msg.chat.id,
-            hash: lessonHash,
+            chatId, hash: lessonHash,
         })
+
         if (!currentLinks.length){
             if (options.edit){
                 this.client.editMessageText(l('linksDelete.messages.allDeleted'), messageOptions());
             } else {
-                this.client.sendMessage(msg.chat.id, l('linksDelete.messages.noLinks'), messageOptions());
+                this.client.sendMessage(chatId, l('linksDelete.messages.noLinks'), messageOptions());
             }
             return
         }
+
         let keyboard = [
             ...currentLinks.map(link => {
                 return [{
@@ -789,13 +829,13 @@ export default class CommandsInterface{
             }),
             localizeKeyboard([{
                 text: 'linksDelete.buttons.close',
-                callback_data: 'delete?u=' + msg.from.id
+                callback_data: 'delete?u=' + userId
             }])
         ]
         if (options.edit){
             this.client.editMessageText(l('linksDelete.messages.message'), messageOptions(keyboard)).catch(e => null);
         } else {
-            this.client.sendMessage(msg.chat.id, l('linksDelete.messages.message'), messageOptions(keyboard))
+            this.client.sendMessage(chatId, l('linksDelete.messages.message'), messageOptions(keyboard))
         }
     }
     async deleteLessonLinkMessage(msg){
@@ -810,17 +850,7 @@ export default class CommandsInterface{
     }
 
     async shareLinks(msg){
-        let chatId = msg.chat.id;
-        let userId = msg.from.id;
-        let messageId = msg.message_id;
-
-        if (chatId > 0){
-            return this.client.sendMessage(chatId,
-                'Цю команду можна використовувати лише у групових чатах.',
-                { reply_to_message_id: messageId }
-            )
-        }
-        this.client.sendMessage(chatId, l('linksShare.messages.message'), {
+        this.client.sendMessage(msg.chat.id, l('linksShare.messages.message'), {
             parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: localizeKeyboard([[{
@@ -837,22 +867,33 @@ export default class CommandsInterface{
     }
 
     async sendStart(msg, parentId){
-        const fallback = () => this.client.sendMessage(msg.chat.id, l('start.messages.message'), { parse_mode: 'HTML', disable_web_page_preview: true });
+        let chatId = msg.chat.id;
+        let userId = msg.from.id;
+
+        const fallback = () => {
+            this.client.sendMessage(
+                chatId, l('start.messages.message'), 
+                { parse_mode: 'HTML', disable_web_page_preview: true }
+            );
+        }
         if (!parentId) return fallback();
-        let member = await this.client.getChatMember(parentId, msg.from.id);
+
+        let member = await this.client.getChatMember(parentId, userId);
         if (!['creator', 'member', 'administrator'].includes(member.status)) return fallback()
+
         let [msgChatData, targetChatData] = await Promise.all([
-            this.client.rozklad.chats.fetchChat(msg.chat.id),
+            this.client.rozklad.chats.fetchChat(chatId),
             this.client.rozklad.chats.fetchChat(parentId),
         ])
         let isFirstBind = msgChatData.isFirstBind;
+
         msgChatData.update({
             groupUUID: targetChatData.groupUUID,
             parentChatId: targetChatData.id,
             isFirstBind: false
         })
         this.client.sendMessage(
-            msg.chat.id, l(`start.messages.${isFirstBind ? 'parentAddedFirst' : 'parentAdded'}`),
+            chatId, l(`start.messages.${isFirstBind ? 'parentAddedFirst' : 'parentAdded'}`),
             { parse_mode: 'HTML', disable_web_page_preview: true }
         )
     }

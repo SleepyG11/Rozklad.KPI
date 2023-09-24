@@ -17,6 +17,8 @@ const SIXTH_LESSON = {
     LESSON_END: { h: 20, m: 5, s: 0, ms: 0 }
 }
 
+const WEEK_START_DATE = moment(0).add(4, 'd').startOf('d');
+
 function onRange(min, value, max){
     return value >= min && value <= max
 }
@@ -65,8 +67,9 @@ export function getSemester(date, invert = false){
 }
 
 export function getWeek(date, invert = false){
-    return Math.floor(((moment(date).unix() - 1524430800) / 604800) % 2) ^ invert;
+    return moment(date).diff(WEEK_START_DATE, 'w') % 2 ^ invert;
 }
+
 export function getDay(date){
     return moment(date).weekday();
 }
@@ -86,8 +89,9 @@ export function getBreak(date){
     let inputDate = moment(date);
     if (!inputDate.isBetween(
         inputDate.clone().set(FIRST_LESSON.BREAK_START), 
-        inputDate.clone().set(SIXTH_LESSON.LESSON_START), 'ms', '[)')
-    ) return false;
+        inputDate.clone().set(SIXTH_LESSON.LESSON_START), 
+        'ms', '()'
+    )) return false;
     if (inputDate.isSameOrAfter(inputDate.clone().set(SIXTH_LESSON.BREAK_START))) return true;
     return getElapsedMinutes(date) % LESSON_WITH_BRAKES_DURATION < LONG_BRAKE_DURATION;
 }

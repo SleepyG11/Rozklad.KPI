@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import db, { Chats } from '../database';
+import { Chats } from '../database';
 
 import CacheMap from '../utils/cache';
 
@@ -14,9 +14,7 @@ export default class ChatsManager{
     async getChatsForNotification(type){
         return Chats.findAll({
             where: {
-                groupUUID: {
-                    [Op.not]: null
-                },
+                groupUUID: { [Op.not]: null },
                 [type]: true,
             }
         })
@@ -28,9 +26,7 @@ export default class ChatsManager{
                 return this.chatsCache.get(id) || null;
             }
             case 'database': {
-                let [result] = await Chats.findOrCreate({
-                    where: { id }
-                })
+                let [result] = await Chats.findOrCreate({ where: { id } });
                 return result;
             }
         }
@@ -38,19 +34,19 @@ export default class ChatsManager{
     async fetchChat(id){
         let cached = await this.searchChat(id, 'cache');
         if (cached) return cached;
+
         let queue = this.chatQueues.get(id);
         if (queue) return await queue;
         let newQueue = this.searchChat(id, 'database');
         this.chatQueues.set(id, newQueue.finally(() => this.chatQueues.delete(id)));
+
         let fetched = await newQueue;
         this.chatsCache.set(id, fetched);
         return fetched;
     }
 
     async clear(){
-        Chats.update({
-            groupUUID: null
-        }).finally(() => {
+        Chats.update({ groupUUID: null }).finally(() => {
             this.chatsCache.forEach(chat => chat.groupUUID = null);
         })
     }

@@ -1,7 +1,7 @@
-import { Op } from 'sequelize';
 import moment from 'moment-timezone';
+import { Op } from 'sequelize';
 
-import db, { Links } from '../database';
+import { Links } from '../database';
 
 export default class LinksManager{
     constructor(client){
@@ -24,9 +24,7 @@ export default class LinksManager{
     async getLessonLinks({ date, chatId, parentChatId, hash, inactive = false }){
         let where = {
             hash, chatId: [chatId, parentChatId].filter(Boolean),
-            expiresAt: {
-                [Op.gte]: moment(date).toDate()
-            }
+            expiresAt: { [Op.gte]: moment(date).toDate() }
         }
         if (!inactive) where.active = true;
         return Links.findAll({ where });
@@ -37,14 +35,10 @@ export default class LinksManager{
         })
     }
     async fetchLink(id){
-        return Links.findOne({
-            where: { id }
-        })
+        return Links.findOne({ where: { id } })
     }
     async deleteLink(id){
-        let deletedCount = await Links.destroy({
-            where: { id }
-        })
+        let deletedCount = await Links.destroy({ where: { id } })
         return Boolean(deletedCount);
     }
     async clear(){

@@ -149,6 +149,7 @@ const LOCALES = {
         targets: {
             current: {
                 notFound: `Зараз у групи {{groupName}} пар немає.`,
+                weekend: `Сьогодні {{weekendName}}, тому пар немає.`,
                 message: '' +
                     '<b>Поточна пара у групи {{groupName}}:</b>\n' + 
                     '\n' + 
@@ -166,6 +167,7 @@ const LOCALES = {
             },
             today: {
                 notFound: `Сьогодні у групи {{groupName}} пар немає.`,
+                weekend: `Сьогодні {{weekendName}}, тому пар немає.`,
                 message: '' +
                     '<b>Пари на сьогодні у групи {{groupName}}:</b>\n' + 
                     '<i>{{timeLabel}}</i>\n' +
@@ -175,6 +177,7 @@ const LOCALES = {
             },
             tomorrow: {
                 notFound: `Завтра у групи {{groupName}} пар немає.`,
+                weekend: `Завтра {{weekendName}}, тому пар не буде.`,
                 message: '' +
                     '<b>Пари на завтра у групи {{groupName}}:</b>\n' + 
                     '<i>{{timeLabel}}</i>\n' +

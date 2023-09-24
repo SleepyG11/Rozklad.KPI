@@ -3,10 +3,6 @@ import moment from 'moment-timezone';
 import { getLessonDates } from "./times";
 import { l } from "./messages";
 
-export function formatGroupName(name = ''){
-    return name.trim().toLowerCase().replace(/^[а-яіїєґ]{2}\-/i, (match) => match.toUpperCase());
-}
-
 const LESSON_TIMES = {
     0: '08:30 - 10:05',
     1: '10:25 - 12:00',
@@ -24,6 +20,9 @@ function countToLocalize(n){
     }
 }
 
+export function formatGroupName(name = ''){
+    return name.trim().toLowerCase().replace(/^[а-яіїєґ]{2}\-/i, (match) => match.toUpperCase());
+}
 export function formatCapitalize(string){
     return string.substring(0, 1).toUpperCase() + string.substring(1);
 }
@@ -114,7 +113,6 @@ export function formatSingleLesson(lesson, number, links){
         lessonLinks
     })
 }
-
 export function formatLessonsDay(day, time = false, teachers = false, skipEmpty = false){
     let formattedLessons = [];
     let timeKey = time ? 'withTime' : 'withoutTime'
@@ -153,7 +151,6 @@ export function formatLessonsDay(day, time = false, teachers = false, skipEmpty 
     }
     return formattedLessons.join('\n');
 }
-
 export function formatLessonsWeek(week, teachers = false){
     let formattedDays = [];
     let maxDayToShow = week[5].count ? 5 : 4;
