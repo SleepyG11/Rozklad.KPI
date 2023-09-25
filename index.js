@@ -42,18 +42,18 @@ client.queries.on('lesson', (query, params) => {
 
 // ------------------------
 
-const LINK_TYPES = {
-    'Zoom': /https:\/\/(?:.+)\.zoom\.us\/(?:.+)(?: |$)/,
-    'Meet': /https:\/\/meet\.google\.com\/(?:.+)(?: |$)/
-}
-
+const LINK_TYPES = client.rozklad.commands.LINK_TYPES;
 for (let linkType in LINK_TYPES){
     client.onText(LINK_TYPES[linkType], (msg, match) => {
+        if (msg.reply_to_message && msg.reply_to_message.from.id == client.me.id) return;
         client.rozklad.commands.addLessonLinkMessage(msg, match[0], linkType);
     })
 }
 client.queries.on('link', (query, params) => {
     client.rozklad.commands.addLessonLinkCallbackQuery(query, params);
+})
+client.commands.on('links_add', (msg, args) => {
+    client.rozklad.commands.addLessonLinkDirectlyMessage(msg);
 })
 client.commands.on('links_share', (msg, args) => {
     client.rozklad.commands.shareLinksMessage(msg, args);
@@ -100,6 +100,7 @@ db.sync({ alter: true }).then(() => {
     client.startPolling({ 
         polling: { 
             interval: 1250, params: { 
+                timeout: 1,
                 allowed_updates: ['callback_query', 'message']
             } 
         } 

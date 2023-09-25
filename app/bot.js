@@ -49,7 +49,7 @@ export default class TelegramClient extends TelegramBot{
             this.queries.emit(command, query, Object.fromEntries(new URLSearchParams(rawParams.join('?'))))
         })
 
-        this.on('polling_error', console.error);
+        this.on('polling_error', e => console.error(e.message));
     }
 
     awaitReplyToMessage(chatId, messageId, options = {}){

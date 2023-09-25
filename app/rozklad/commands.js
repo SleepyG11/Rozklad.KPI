@@ -53,6 +53,11 @@ export default class CommandsInterface{
         week_first: getFirstWeekLessons,
         week_second: getSecondWeekLessons,
     }
+    LINK_TYPES = {
+        'Zoom': /https:\/\/(?:.+)\.zoom\.us\/(?:.+)(?: |$)/,
+        'Meet': /https:\/\/meet\.google\.com\/(?:.+)(?: |$)/,
+        'MS Teams': /https:\/\/teams\.microsoft\.com\/(?:.+)(?: |$)/,
+    }
 
     /**
      * @param {TelegramClient} client 
@@ -635,6 +640,9 @@ export default class CommandsInterface{
         let userId = userMsg.from.id;
         let messageId = userMsg.message_id;
 
+        let linkUrl = options.linkUrl;
+        let linkType = options.linkType;
+
         try {
             switch(stage){
                 case this.LINK_COMMAND_STAGES.START: {
@@ -651,14 +659,12 @@ export default class CommandsInterface{
                         inactive: true,
                         date: lessonData.date,
                     })
-                    if (currentLinks.length > 3 || currentLinks.some(link => link.url === options.linkUrl)) return;
+                    if (currentLinks.length > 3 || currentLinks.some(link => link.url === linkUrl)) return;
 
                     let lessonHash = lessonData.result.hash;
                     let linkData = await this.client.rozklad.links.createInactiveLink({
                         chatId, 
-                        hash: lessonHash,
-                        url: options.linkUrl,
-                        type: options.linkType,
+                        hash: lessonHash, url: linkUrl, type: linkType,
                         expiresAt: lessonData.date.endOf('day').toDate(),
                     })
 
@@ -694,16 +700,13 @@ export default class CommandsInterface{
                 case this.LINK_COMMAND_STAGES.TEMP: {
                     let linkData = await this.client.rozklad.links.fetchLink(options.linkId);
                     if (!linkData) return this.addLessonLink(msg, this.LINK_COMMAND_STAGES.CANCEL, options);
-
                     linkData.update({
                         name: `${linkData.type} (тимч.)`,
                         active: true,
                     })
-                    this.client.editMessageText(l('link.messages.stageTemp.added'), {
-                        chat_id: chatId,
-                        message_id: botMsg.message_id,
-                        parse_mode: 'HTML',
-                        reply_markup: { inline_keyboard: [] }
+                    this.client.deleteMessage(chatId, botMsg.message_id).catch(e => null);
+                    this.client.sendMessage(chatId, l('link.messages.stageTemp.added'), {
+                        parse_mode: 'HTML', reply_to_message_id: messageId,
                     })
                     return;
                 }
@@ -766,6 +769,127 @@ export default class CommandsInterface{
         this.addLessonLink(query.message.reply_to_message, query.message, params.s, {
             linkId: params.d
         })
+    }
+
+    async addLessonLinkDirectly(msg){
+        let chatId = msg.chat.id;
+        let userId = msg.from.id;
+        let messageId = msg.message_id;
+
+        let messageOptions = {
+            parse_mode: 'HTML', reply_to_message_id: messageId
+        }
+
+        let chatData = await this.getChatOrNotifyIfNotBinded(msg);
+        if (!chatData) return;
+        let scheduleData = await this.getScheduleOrNotifyIfNotExists(msg, chatData);
+        if (!scheduleData) return;
+        let lessonData = getCurrentLesson(scheduleData.data);
+        if (!lessonData.result) {
+            return this.client.sendMessage(
+                chatId, l('link.messages.directive.noLesson'), messageOptions
+            );
+        };
+
+        let currentLinks = await this.client.rozklad.links.getLessonLinks({
+            chatId: chatData.id,
+            hash: lessonData.result.hash,
+            inactive: true,
+            date: lessonData.date,
+        })
+        if (currentLinks.length > 3){
+            return this.client.sendMessage(
+                chatId, l('link.messages.directive.limitExceeded'), messageOptions
+            );
+        }
+
+        let responseBotMsg = await this.client.sendMessage(
+            chatId, l('link.messages.directive.message'),
+            {
+                parse_mode: 'HTML',
+                reply_to_message_id: messageId,
+                reply_markup: {
+                    force_reply: true,
+                    input_field_placeholder: l('link.placeholders.directive.linkUrl')
+                }
+            }
+        )
+        let linkUserMsg = await this.client.awaitReplyToMessage(
+            chatId, responseBotMsg.message_id, 
+            { filter: filterMsg => filterMsg.from.id === userId && filterMsg.text }
+        )
+        messageId = linkUserMsg.message_id;
+        messageOptions = {
+            parse_mode: 'HTML', reply_to_message_id: messageId,
+            reply_markup: {
+                remove_keyboard: true,
+                selective: true,
+            }
+        }
+        let linkUrl, linkType;
+        for (let type in this.LINK_TYPES){
+            let match = this.LINK_TYPES[type].exec(linkUserMsg.text);
+            if (!match) continue;
+            linkUrl = match[0].substring(0, 512);
+            linkType = type;
+        }
+        if (!linkType){
+            return this.sendMessage(
+                chatId, l('link.messages.directive.invalidUrl'), messageOptions
+            )
+        }
+        // Refresh data
+        currentLinks = await this.client.rozklad.links.getLessonLinks({
+            chatId: chatData.id,
+            hash: lessonData.result.hash,
+            inactive: true,
+            date: lessonData.date,
+        })
+        if (currentLinks.length > 3){
+            return this.client.sendMessage(
+                msg.chat.id, l('link.messages.directive.limitExceeded'), messageOptions
+            );
+        }
+        if (currentLinks.some(link => link.url === linkUrl)) {
+            this.client.sendMessage(
+                msg.chat.id, l('link.messages.directive.alreadyExists'), messageOptions
+            );
+        };
+
+        let lessonHash = lessonData.result.hash;
+        let linkData = await this.client.rozklad.links.createInactiveLink({
+            chatId, 
+            hash: lessonHash,
+            url: linkUrl,
+            type: linkType,
+            expiresAt: lessonData.date.endOf('day').toDate(),
+        })
+
+        this.client.sendMessage(chatId, l('link.messages.directive.chooseType'), {
+            parse_mode: 'HTML',
+            reply_to_message_id: messageId,
+            reply_markup: {
+                remove_keyboard: true,
+                selective: true,
+                inline_keyboard: localizeKeyboard([[
+                    {
+                        text: 'link.buttons.directive.addPerm',
+                        callback_data: `link?s=${this.LINK_COMMAND_STAGES.NAME}&d=${linkData.id}`
+                    },
+                    {
+                        text: 'link.buttons.directive.addTemp',
+                        callback_data: `link?s=${this.LINK_COMMAND_STAGES.TEMP}&d=${linkData.id}`
+                    },
+                    {
+                        text: 'link.buttons.directive.cancel',
+                        callback_data: `link?s=${this.LINK_COMMAND_STAGES.CANCEL}&d=${linkData.id}`
+                    }
+                ]])
+            }
+        })
+    }
+    async addLessonLinkDirectlyMessage(msg, args){
+        this.addLessonLinkDirectly(msg);
     }
 
     async deleteLessonLink(msg, options = {}){
