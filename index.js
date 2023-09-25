@@ -76,6 +76,9 @@ client.commands.on('about', msg => {
 client.commands.on('help', msg => {
     client.rozklad.commands.sendHelpMessage(msg);
 })
+client.queries.on('help', (query, params) => {
+    client.rozklad.commands.sendHelpCallbackQuery(query, params);
+})
 
 // ------------------------
 

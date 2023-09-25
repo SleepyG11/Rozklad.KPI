@@ -1026,27 +1026,54 @@ export default class CommandsInterface{
     }
 
     async sendAbout(msg){
+        let buttons = ['privacy'];
         this.client.sendMessage(msg.chat.id, l('about.messages.message', {
             botUsername: this.client.me.username,
             botName: this.client.me.first_name,
             scheduleHost: process.env.ROZKLAD_HOST
         }), {
             parse_mode: 'HTML',
-            disable_web_page_preview: true
+            disable_web_page_preview: true,
+            reply_markup: {
+                inline_keyboard: localizeKeyboard(buttons.map(button => {
+                    return [{
+                        text: `help.buttons.${button}`,
+                        callback_data: `help?s=${button}`
+                    }]
+                }))
+            }
         })
     }
     async sendAboutMessage(msg){
         this.sendAbout(msg);
     }
 
-    async sendHelp(msg){
+    async sendHelp(msg, section){
+        if (section){
+            return this.client.sendMessage(msg.chat.id, l(`help.messages.${section}`), {
+                parse_mode: 'HTML', disable_web_page_preview: true,
+            })
+        }
+        let buttons = ['notifs', 'links', 'privacy'];
         this.client.sendMessage(msg.chat.id, l('help.messages.message'), {
             parse_mode: 'HTML',
-            disable_web_page_preview: true
+            disable_web_page_preview: true,
+            reply_markup: {
+                inline_keyboard: localizeKeyboard(buttons.map(button => {
+                    return [{
+                        text: `help.buttons.${button}`,
+                        callback_data: `help?s=${button}`
+                    }]
+                }))
+            }
         })
     }
     async sendHelpMessage(msg){
         this.sendHelp(msg);
+    }
+    async sendHelpCallbackQuery(query, params){
+        this.client.answerCallbackQuery(query.id);
+        this.sendHelp(query.message, params.s);
     }
 
     async delete(msg){
