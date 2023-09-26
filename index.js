@@ -49,7 +49,7 @@ const LINK_TYPES = client.rozklad.commands.LINK_TYPES;
 for (let linkType in LINK_TYPES){
     client.onText(LINK_TYPES[linkType], (msg, match) => {
         if (msg.reply_to_message && msg.reply_to_message.from.id == client.me.id) return;
-        client.rozklad.commands.addLessonLinkMessage(msg, match[0], linkType);
+        client.rozklad.commands.addLessonLinkMessage(msg, match[0].trim(), linkType);
     })
 }
 client.queries.on('link', (query, params) => {

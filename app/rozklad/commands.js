@@ -55,9 +55,9 @@ export default class CommandsInterface{
         week_second: getSecondWeekLessons,
     }
     LINK_TYPES = {
-        'Zoom': /https:\/\/(?:.+)\.zoom\.us\/(?:.+)(?: |$)/,
-        'Meet': /https:\/\/meet\.google\.com\/(?:.+)(?: |$)/,
-        'MS Teams': /https:\/\/teams\.microsoft\.com\/(?:.+)(?: |$)/,
+        'Zoom': /https:\/\/(?:.+)\.zoom\.us\/(?:[^ \r\n]+)(?: |$)/,
+        'Meet': /https:\/\/meet\.google\.com\/(?:[^ \r\n]+)(?: |$)/,
+        'MS Teams': /https:\/\/teams\.microsoft\.com\/(?:[^ \r\n]+)(?: |$)/,
     }
 
     /**
@@ -861,7 +861,7 @@ export default class CommandsInterface{
         for (let type in this.LINK_TYPES){
             let match = this.LINK_TYPES[type].exec(linkUserMsg.text);
             if (!match) continue;
-            linkUrl = match[0].substring(0, 512);
+            linkUrl = match[0].trim().substring(0, 512);
             linkType = type;
         }
         if (!linkType){
