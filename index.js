@@ -30,12 +30,15 @@ client.queries.on('settings', (query, params) => {
 
 // ------------------------
 
-client.commands.on('#command', (msg, params, target) => {
-    if (![
-        'current', 'next', 'today', 'tomorrow', 'nextday', 'week_current', 'week_next'
-    ].includes(target)) return;
-    client.rozklad.commands.sendLessonMessage(msg, params, target);
+;[
+    'current', 'next', 'today', 'tomorrow', 'nextday', 'week_current', 'week_next'
+].forEach(target => {
+    client.commands.on(target, (msg, params) => {
+        client.rozklad.admin.addCommandUse();
+        client.rozklad.commands.sendLessonMessage(msg, params, target);
+    })
 })
+
 client.queries.on('lesson', (query, params) => {
     client.rozklad.commands.sendLessonCallbackQuery(query, params);
 })
@@ -88,6 +91,9 @@ client.commands.on('eval', (msg, args) => {
 client.commands.on('admin_stats', (msg, args) => {
     client.rozklad.admin.globalStats(msg, args);
 })
+client.commands.on('admin_groups_stats', (msg, args) => {
+    client.rozklad.admin.globalGroupsStats(msg, args);
+})
 
 // ------------------------
 
@@ -97,9 +103,15 @@ client.queries.on('delete', (query, params) => {
 
 // ------------------------
 
-db.sync({ alter: true }).then(() => {
+process.on('unhandledRejection', console.error);
+process.on('uncaughtException', console.error);
+
+// ------------------------
+
+db.sync({ alter: true }).then(async () => {
     client.rozklad.commands.startNotificationsLoop();
     client.rozklad.commands.startSemesterClearLoop();
+    await client.rozklad.admin.init();
     client.startPolling({ 
         polling: { 
             interval: 1250, params: { 

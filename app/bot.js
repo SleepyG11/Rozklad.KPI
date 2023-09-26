@@ -49,6 +49,7 @@ export default class TelegramClient extends TelegramBot{
             this.queries.emit(command, query, Object.fromEntries(new URLSearchParams(rawParams.join('?'))))
         })
 
+        this.on('error', e => console.error(e.message));
         this.on('polling_error', e => console.error(e.message));
     }
 

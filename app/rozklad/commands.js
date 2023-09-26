@@ -1,4 +1,5 @@
 import moment from "moment-timezone";
+import { AbortError } from "node-fetch";
 
 import TelegramClient from '../bot';
 import { l, localizeKeyboard } from '../utils/messages';
@@ -103,7 +104,9 @@ export default class CommandsInterface{
             this.client.sendMessage(chatData.id, msgText, {
                 parse_mode: 'HTML',
                 disable_web_page_preview: true
-            }).catch(e => null)
+            }).then(() => {
+                this.client.rozklad.admin.addNotificationCount(target);
+            }, e => null);
         }
         iterate();
     }
@@ -226,9 +229,19 @@ export default class CommandsInterface{
                         }
                     )
                     let nameUserMsg = await this.client.awaitReplyToMessage(
-                        chatId, responseBotMsg.message_id, 
-                        { filter: filterMsg => filterMsg.from.id === userId && filterMsg.text }
-                    )
+                        chatId, responseBotMsg.message_id,
+                        { 
+                            signal: AbortSignal.timeout(60000 * 10),
+                            filter: filterMsg => filterMsg.from.id === userId && filterMsg.text
+                        }
+                    ).catch(e => {
+                        if (e instanceof AbortError) {
+                            this.client.deleteMessage(chatId, responseBotMsg.message_id);
+                            return null;
+                        }
+                        throw e;
+                    })
+                    if (!nameUserMsg) return;
                     messageId = nameUserMsg.message_id;
                     data = nameUserMsg.text.substring(0, 10);
                 }
@@ -724,6 +737,7 @@ export default class CommandsInterface{
                         }
                     })
                     let nameUserMsg = await this.client.awaitReplyToMessage(chatId, responseBotMsg.message_id, {
+                        signal: AbortSignal.timeout(60000 * 10),
                         filter: filterMsg => {
                             if (filterMsg.from.id !== userId || !filterMsg.text) return false;
                             if (filterMsg.text.length > 32){
@@ -735,7 +749,14 @@ export default class CommandsInterface{
                             }
                             return true;
                         }
+                    }).catch(e => {
+                        if (e instanceof AbortError) {
+                            this.client.deleteMessage(chatId, responseBotMsg.message_id);
+                            return null;
+                        }
+                        throw e;
                     })
+                    if (!nameUserMsg) return;
 
                     let semester = getSemester(linkData.createdAt);
                     linkData.update({
@@ -816,8 +837,18 @@ export default class CommandsInterface{
         )
         let linkUserMsg = await this.client.awaitReplyToMessage(
             chatId, responseBotMsg.message_id, 
-            { filter: filterMsg => filterMsg.from.id === userId && filterMsg.text }
-        )
+            { 
+                signal: AbortSignal.timeout(60000 * 10),
+                filter: filterMsg => filterMsg.from.id === userId && filterMsg.text
+            }
+        ).catch(e => {
+            if (e instanceof AbortError) {
+                this.client.deleteMessage(chatId, responseBotMsg.message_id);
+                return null;
+            }
+            throw e;
+        })
+        if (!linkUserMsg) return;
         messageId = linkUserMsg.message_id;
         messageOptions = {
             parse_mode: 'HTML', reply_to_message_id: messageId,
