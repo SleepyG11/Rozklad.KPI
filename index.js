@@ -10,9 +10,11 @@ const client = new TelegramClient(process.env.TELEGRAM_BOT_TOKEN);
 // ------------------------
 
 client.commands.on('bind', async (msg, args) => {
+    client.rozklad.admin.updateLastUsageDate(msg.chat.id);
     client.rozklad.commands.bindGroupMessage(msg, args);
 })
 client.queries.on('bind', async (query, params) => {
+    client.rozklad.admin.updateLastUsageDate(msg.chat.id);
     client.rozklad.commands.bindGroupCallbackQuery(query, params);
 })
 client.commands.on('unbind', (msg, args) => {
@@ -22,6 +24,7 @@ client.commands.on('unbind', (msg, args) => {
 // ------------------------
 
 client.commands.on('settings', msg => {
+    client.rozklad.admin.updateLastUsageDate(msg.chat.id);
     client.rozklad.commands.sendSettingsMessage(msg);
 })
 client.queries.on('settings', (query, params) => {
@@ -35,6 +38,7 @@ client.queries.on('settings', (query, params) => {
 ].forEach(target => {
     client.commands.on(target, (msg, params) => {
         client.rozklad.admin.addCommandUse();
+        client.rozklad.admin.updateLastUsageDate(msg.chat.id);
         client.rozklad.commands.sendLessonMessage(msg, params, target);
     })
 })
@@ -56,12 +60,15 @@ client.queries.on('link', (query, params) => {
     client.rozklad.commands.addLessonLinkCallbackQuery(query, params);
 })
 client.commands.on('links_add', (msg, args) => {
+    client.rozklad.admin.updateLastUsageDate(msg.chat.id);
     client.rozklad.commands.addLessonLinkDirectlyMessage(msg);
 })
 client.commands.on('links_share', (msg, args) => {
+    client.rozklad.admin.updateLastUsageDate(msg.chat.id);
     client.rozklad.commands.shareLinksMessage(msg, args);
 })
 client.commands.on('links_delete', (msg, args) => {
+    client.rozklad.admin.updateLastUsageDate(msg.chat.id);
     client.rozklad.commands.deleteLessonLinkMessage(msg, args);
 })
 client.queries.on('linkdel', (query, params) => {
@@ -71,12 +78,15 @@ client.queries.on('linkdel', (query, params) => {
 // ------------------------
 
 client.commands.on('start', (msg, args) => {
+    client.rozklad.admin.updateLastUsageDate(msg.chat.id);
     client.rozklad.commands.sendStartMessage(msg, args);
 })
 client.commands.on('about', msg => {
+    client.rozklad.admin.updateLastUsageDate(msg.chat.id);
     client.rozklad.commands.sendAboutMessage(msg);
 })
 client.commands.on('help', msg => {
+    client.rozklad.admin.updateLastUsageDate(msg.chat.id);
     client.rozklad.commands.sendHelpMessage(msg);
 })
 client.queries.on('help', (query, params) => {

@@ -45,7 +45,7 @@ export default class AdminInterface{
     }
     async globalStats(msg, args){
         if (!this.isOwner(msg)) return;
-        let updatedAtCondition = {
+        let lastUsageDateCondition = {
             [Op.gt]: moment().add(-1, 'month').toDate()
         }
         let [
@@ -58,11 +58,11 @@ export default class AdminInterface{
                 Variables.findByPk('commandsUsedCount', { transaction }),
                 Chats.count({ transaction, where: { 
                     id: { [Op.gt]: 0 },
-                    updatedAt: updatedAtCondition
+                    lastUsageDate: lastUsageDateCondition
                 }}),
                 Chats.count({ transaction, where: 
                     { id: { [Op.lt]: 0 },
-                    updatedAt: updatedAtCondition
+                    lastUsageDate: lastUsageDateCondition
                 }}),
                 Schedules.count({ transaction, where: { data: { [Op.not]: null } }}),
             ])
@@ -124,8 +124,8 @@ export default class AdminInterface{
     addNotificationCount(type, count = 1){
         let key;
         switch(type){
-            case 'before': key = 'beforeNotifsCount'; break;
-            case 'now': key = 'nowNotifsCount'; break;
+            case 'beforeNotif': key = 'beforeNotifsCount'; break;
+            case 'nowNotif': key = 'nowNotifsCount'; break;
             default: return;
         }
         Variables.increment('intValue', {
@@ -136,6 +136,13 @@ export default class AdminInterface{
     addCommandUse(){
         Variables.increment('intValue', {
             where: { key: 'commandsUsedCount' }
+        })
+    }
+    updateLastUsageDate(id){
+        Chats.update({
+            lastUsageDate: new Date()
+        }, {
+            where: { id }
         })
     }
 

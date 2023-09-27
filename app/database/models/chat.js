@@ -43,6 +43,9 @@ export default function chatInit(sequelize){
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true
+        },
+        lastUsageDate: {
+            type: DataTypes.DATE,
         }
     }, {
         createdAt: true,
