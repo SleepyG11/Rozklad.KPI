@@ -224,7 +224,8 @@ export default class CommandsInterface{
                             reply_to_message_id: messageId,
                             reply_markup: {
                                 force_reply: true,
-                                input_field_placeholder: l('bind.placeholders.stageStart.groupName')
+                                input_field_placeholder: l('bind.placeholders.stageStart.groupName'),
+                                selective: true
                             }
                         }
                     )
@@ -733,6 +734,7 @@ export default class CommandsInterface{
                         reply_to_message_id: messageId,
                         reply_markup: {
                             force_reply: true,
+                            selective: true,
                             input_field_placeholder: l('link.placeholders.stageName.linkName')
                         }
                     })
@@ -831,6 +833,7 @@ export default class CommandsInterface{
                 reply_to_message_id: messageId,
                 reply_markup: {
                     force_reply: true,
+                    selective: true,
                     input_field_placeholder: l('link.placeholders.directive.linkUrl')
                 }
             }
