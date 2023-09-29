@@ -105,7 +105,7 @@ export default class CommandsInterface{
                 parse_mode: 'HTML',
                 disable_web_page_preview: true
             }).then(() => {
-                this.client.rozklad.admin.addNotificationCount(target);
+                this.client.rozklad.admin.addNotificationCount(type);
                 this.client.rozklad.admin.updateLastUsageDate(chatData.id);
             }, e => null);
         }

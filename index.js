@@ -14,7 +14,6 @@ client.commands.on('bind', async (msg, args) => {
     client.rozklad.commands.bindGroupMessage(msg, args);
 })
 client.queries.on('bind', async (query, params) => {
-    client.rozklad.admin.updateLastUsageDate(msg.chat.id);
     client.rozklad.commands.bindGroupCallbackQuery(query, params);
 })
 client.commands.on('unbind', (msg, args) => {
