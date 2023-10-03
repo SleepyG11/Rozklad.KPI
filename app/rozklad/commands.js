@@ -869,7 +869,7 @@ export default class CommandsInterface{
             linkType = type;
         }
         if (!linkType){
-            return this.sendMessage(
+            return this.client.sendMessage(
                 chatId, l('link.messages.directive.invalidUrl'), messageOptions
             )
         }
@@ -886,7 +886,7 @@ export default class CommandsInterface{
             );
         }
         if (currentLinks.some(link => link.url === linkUrl)) {
-            this.client.sendMessage(
+            return this.client.sendMessage(
                 msg.chat.id, l('link.messages.directive.alreadyExists'), messageOptions
             );
         };
