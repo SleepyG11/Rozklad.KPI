@@ -42,6 +42,6 @@ export default class LinksManager{
         return Boolean(deletedCount);
     }
     async clear(){
-        Links.destroy()
+        Links.destroy({ truncate: true })
     }
 }

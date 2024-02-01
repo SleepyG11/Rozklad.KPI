@@ -354,7 +354,7 @@ export default class SchedulesManager{
     }
 
     async clear(){
-        Schedules.destroy().finally(() => {
+        Schedules.destroy({ truncate: true }).finally(() => {
             this.scheduleCache.clear();
             this.dataCache.clear();
 
