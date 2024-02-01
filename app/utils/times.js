@@ -63,7 +63,7 @@ export function calculateLessonDates(date, number){
 }
 
 export function getSemester(date, invert = false){
-    return onRange(2, moment(date).month(), 7) ^ invert;
+    return onRange(2, moment(date).month() + 1, 7) ^ invert;
 }
 
 export function getWeek(date, invert = false){

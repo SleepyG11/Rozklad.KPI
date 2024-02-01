@@ -4,6 +4,8 @@ import _ from 'lodash';
 
 import TelegramClient from "../bot";
 import db, { Chats, Schedules, Variables } from "../database";
+import * as Times from '../utils/times';
+import * as Weekends from '../utils/weekends';
 
 export default class AdminInterface{
     /**

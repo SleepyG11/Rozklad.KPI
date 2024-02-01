@@ -156,7 +156,7 @@ const LOCALES = {
         targets: {
             current: {
                 notFound: `Зараз у групи {{groupName}} пар немає.`,
-                weekend: `Сьогодні {{weekendName}}, тому пар немає.`,
+                weekend: `Зараз {{weekendName}}, тому пар немає.`,
                 message: '' +
                     '<b>Поточна пара у групи {{groupName}}:</b>\n' + 
                     '\n' + 
@@ -174,7 +174,7 @@ const LOCALES = {
             },
             today: {
                 notFound: `Сьогодні у групи {{groupName}} пар немає.`,
-                weekend: `Сьогодні {{weekendName}}, тому пар немає.`,
+                weekend: `Зараз {{weekendName}}, тому пар немає.`,
                 message: '' +
                     '<b>Пари на сьогодні у групи {{groupName}}:</b>\n' + 
                     '<i>{{timeLabel}}</i>\n' +
@@ -223,7 +223,7 @@ const LOCALES = {
                 '{{spotLinksText}} Помічати посилання на дистанційні пари\n' +
                 '{{hasParentText}}\n' +
                 '\n' +
-                'Біль детально про функції бота - /help'
+                'Більш детально про функції бота - /help'
             ,
         },
         buttons: {
