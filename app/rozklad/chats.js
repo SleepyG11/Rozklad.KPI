@@ -46,7 +46,7 @@ export default class ChatsManager{
     }
 
     async clear(){
-        Chats.update({ groupUUID: null }).finally(() => {
+        Chats.update({ groupUUID: null }, { where: { groupUUID: { [Op.not]: null } } }).finally(() => {
             this.chatsCache.forEach(chat => chat.groupUUID = null);
         })
     }
