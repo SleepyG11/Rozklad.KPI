@@ -83,7 +83,7 @@ export default class CommandsInterface{
             setTimeout(iterate, 300);
 
             let scheduleData = await this.client.rozklad.schedules.fetchGroupSchedule(chatData.groupUUID);
-            if (!scheduleData) return;
+            if (!scheduleData?.data) return;
             let lessonData = getCurrentLesson(scheduleData.data);
             if (!lessonData.result) return;
 
@@ -127,15 +127,18 @@ export default class CommandsInterface{
         }, 60000)
     }
 
+    startSemesterClear(){
+        this.client.rozklad.chats.clear();
+        this.client.rozklad.schedules.clear();
+        this.client.rozklad.links.clear();
+    }
     startSemesterClearLoop(){
         setInterval(() => {
             let newSemesterNumber = getSemester();
             if (this.currentSemesterNumber === newSemesterNumber) return;
             this.currentSemesterNumber = newSemesterNumber;
 
-            this.client.rozklad.chats.clear();
-            this.client.rozklad.schedules.clear();
-            this.client.rozklad.links.clear();
+            this.startSemesterClear();
         }, 60000)
     }
 
@@ -475,6 +478,8 @@ export default class CommandsInterface{
                         timeDiff: labels.diff,
                         timeLabel: labels.label
                     })
+                } else if (lessonData.reason === 'missingSchedule'){
+                    msgText = l('lesson.messages.missingSchedule')
                 } else {
                     msgText = l('lesson.targets.' + target + '.' + lessonData.reason, {
                         groupName: scheduleData.name,
@@ -497,6 +502,8 @@ export default class CommandsInterface{
                         lessonText: formatLessonsDay(lessonData.result, !chatData.hideTime, !chatData.hideTeachers, false),
                         timeLabel: labels.label
                     })
+                } else if (lessonData.reason === 'missingSchedule'){
+                    msgText = l('lesson.messages.missingSchedule')
                 } else {
                     msgText = l('lesson.targets.' + target + '.' + lessonData.reason, {
                         groupName: scheduleData.name,

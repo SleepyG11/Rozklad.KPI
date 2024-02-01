@@ -152,6 +152,7 @@ export function formatLessonsDay(day, time = false, teachers = false, skipEmpty 
     return formattedLessons.join('\n');
 }
 export function formatLessonsWeek(week, teachers = false){
+    week ?? new Array(7).fill({ count: 0 });
     let formattedDays = [];
     let maxDayToShow = week[5].count ? 5 : 4;
     for (let dayNumber = 0; dayNumber <= maxDayToShow; dayNumber++){

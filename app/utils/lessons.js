@@ -4,6 +4,7 @@ import { calculateLessonDates, getDayIndex, getLessonAndBreak, getLessonNumber, 
 import { getWeekend } from "./weekends";
 
 export function getCurrentLesson(schedule = [], date){
+    if (!schedule) return { result: null, reason: 'missingSchedule' };
     if (getWeekend(date)) return { result: null, reason: 'weekend' };
 
     let dayIndex = getDayIndex(date);
@@ -15,6 +16,7 @@ export function getCurrentLesson(schedule = [], date){
     return { date: dates.lessonStart, number, result: lesson };
 }
 export function getNextLesson(schedule = [], date){
+    if (!schedule) return { result: null, reason: 'missingSchedule' };
     if (schedule.every(day => day.count === 0)) return { result: null, reason: 'notFound' };
 
     let searchDate = moment(date);
@@ -66,7 +68,8 @@ export function getNextLesson(schedule = [], date){
 }
 
 export function getTodayLessons(schedule = [], date){
-    if (getWeekend(date)) return { result: null, reason: 'weekend' }
+    if (!schedule) return { result: null, reason: 'missingSchedule' };
+    if (getWeekend(date)) return { result: null, reason: 'weekend' };
 
     let scheduleDay = schedule[getDayIndex(date)];
     let dayDate =  moment(date).startOf('d');
@@ -78,6 +81,7 @@ export function getTomorrowLessons(schedule = [], date){
     return getTodayLessons(schedule, moment(date).add(1, 'd'));
 }
 export function getNextDayLessons(schedule = [], date){
+    if (!schedule) return { result: null, reason: 'missingSchedule' };
     if (schedule.every(day => day.count === 0)) return { result: null, reason: 'notFound' };
 
     let searchDayIndex = getDayIndex(date);
@@ -107,7 +111,7 @@ export function getCurrentWeekLessons(schedule = [], date){
     let week = getWeek(date);
     return {
         date: moment(date).startOf('w').add(1, 'd'),
-        result: schedule.slice(week * 7, (week + 1) * 7)
+        result: schedule ? schedule.slice(week * 7, (week + 1) * 7) : null
     }
 }
 export function getNextWeekLessons(schedule = [], date){
