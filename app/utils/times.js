@@ -3,8 +3,9 @@ import moment from 'moment-timezone';
 const LONG_BRAKE_DURATION = 20;
 const SHORT_BRAKE_DURATION = 5;
 const LESSON_DURATION = 90;
+
 const LESSON_WITH_BRAKES_DURATION = LESSON_DURATION + SHORT_BRAKE_DURATION + LONG_BRAKE_DURATION;
-const LESSONS_START_TIME = 490; // 8 * 60 + 10, 8:10
+const LESSONS_START_TIME = 8 * 60 + 30 - LONG_BRAKE_DURATION; // 8 * 60 + 30, 8:30
 
 const FIRST_LESSON = {
     BREAK_START: { h: 8, m: 10, s: 0, ms: 0 },

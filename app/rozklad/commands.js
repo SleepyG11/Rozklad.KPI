@@ -142,6 +142,8 @@ export default class CommandsInterface{
         }, 60000)
     }
 
+    // ------------------
+
     async canUseAdminCommands(chatId, memberId){
         if (chatId > 0) return true;
         let member = await this.client.getChatMember(chatId, memberId);
@@ -176,6 +178,8 @@ export default class CommandsInterface{
         return true;
     }
 
+    // ------------------
+
     async rejectIfNotButtonAuthor(query){
         if (query.from.id == query.message.reply_to_message.from.id) return false;
         this.client.answerCallbackQuery(query.id, {
@@ -199,6 +203,8 @@ export default class CommandsInterface{
         )
         return true;
     }
+
+    // ------------------
 
     async bindGroup(msg, stage = this.BIND_COMMAND_STAGES.START, data){
         let chatId = msg.chat.id;
@@ -359,6 +365,8 @@ export default class CommandsInterface{
         this.bindGroup(query.message.reply_to_message, params.s, params.d);
     }
 
+    // ------------------
+
     async unbindGroup(msg){
         let chatId = msg.chat.id;
         let userId = msg.from.id;
@@ -374,6 +382,8 @@ export default class CommandsInterface{
         if (await this.rejectIfNotChatAdmin(msg)) return;
         this.unbindGroup(msg);
     }
+
+    // ------------------
 
     async sendLesson(msg, target, stage = this.LESSON_COMMAND_STAGES.CHAT, options = {}){
         let chatId = msg.chat.id;
@@ -574,6 +584,8 @@ export default class CommandsInterface{
         });
     }
 
+    // ------------------
+
     async sendSettings(userMsg, botMsg, query, params){
         let chatId = userMsg.chat.id;
         let userId = userMsg.from.id;
@@ -656,6 +668,8 @@ export default class CommandsInterface{
         if (await this.rejectIfNotButtonAuthor(query)) return;
         this.sendSettings(query.message.reply_to_message, query.message, query, params);
     }
+
+    // ------------------
 
     async addLessonLink(userMsg, botMsg, stage, options){
         let chatId = userMsg.chat.id;
@@ -802,6 +816,8 @@ export default class CommandsInterface{
         })
     }
 
+    // ------------------
+
     async addLessonLinkDirectly(msg){
         let chatId = msg.chat.id;
         let userId = msg.from.id;
@@ -934,6 +950,8 @@ export default class CommandsInterface{
         this.addLessonLinkDirectly(msg);
     }
 
+    // ------------------
+
     async deleteLessonLink(msg, options = {}){
         let chatId = msg.chat.id;
         let userId = msg.from.id;
@@ -1015,6 +1033,8 @@ export default class CommandsInterface{
         })
     }
 
+    // ------------------
+
     async shareLinks(msg){
         this.client.sendMessage(msg.chat.id, l('linksShare.messages.message'), {
             parse_mode: 'HTML',
@@ -1031,6 +1051,8 @@ export default class CommandsInterface{
         if (await this.rejectIfNotChatAdmin(msg)) return;
         this.shareLinks(msg);
     }
+
+    // ------------------
 
     async sendStart(msg, parentId){
         let chatId = msg.chat.id;
@@ -1067,6 +1089,8 @@ export default class CommandsInterface{
         this.sendStart(msg, args[0]);
     }
 
+    // ------------------
+
     async sendAbout(msg){
         let buttons = ['privacy'];
         this.client.sendMessage(msg.chat.id, l('about.messages.message', {
@@ -1089,6 +1113,8 @@ export default class CommandsInterface{
     async sendAboutMessage(msg){
         this.sendAbout(msg);
     }
+
+    // ------------------
 
     async sendHelp(msg, section){
         if (section){
@@ -1117,6 +1143,8 @@ export default class CommandsInterface{
         this.client.answerCallbackQuery(query.id);
         this.sendHelp(query.message, params.s);
     }
+
+    // ------------------
 
     async delete(msg){
         this.client.deleteMessage(msg.chat.id, msg.message_id).catch(e => null);
