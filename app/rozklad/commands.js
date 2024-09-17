@@ -55,7 +55,7 @@ export default class CommandsInterface{
         week_second: getSecondWeekLessons,
     }
     LINK_TYPES = {
-        'Zoom': /https:\/\/(?:.+)\.zoom\.us\/(?:[^ \r\n]+)(?: |$)/,
+        'Zoom': /https:\/\/(?:.+\.)?zoom\.us\/j\/(?:[^ \r\n]+)(?: |$)/,
         'Meet': /https:\/\/meet\.google\.com\/(?:[^ \r\n]+)(?: |$)/,
         'MS Teams': /https:\/\/teams\.microsoft\.com\/(?:[^ \r\n]+)(?: |$)/,
     }
