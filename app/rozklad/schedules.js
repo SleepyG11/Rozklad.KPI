@@ -219,7 +219,13 @@ export default class SchedulesManager{
                 }
                 let document = parser.parse(html, PARSER_OPTIONS)
                 let cells = document.querySelectorAll('.table.table-bordered td');
-                if (cells.length !== 98) return await this.searchGroupSchedule(uuid, 'database'); 
+
+                let lessonsInTable
+                switch(cells.length){
+                    case 98: lessonsInTable = 6; break;
+                    case 112: lessonsInTable = 7; break;
+                    default: return await this.searchGroupSchedule(uuid, 'database'); 
+                }
 
                 let data = Array(14).fill().map(() => {
                     return { count: 0, min: -1, max: -1, lessons: [] }
@@ -227,7 +233,7 @@ export default class SchedulesManager{
 
                 for (let week = 0; week < 2; week++){
                     for (let day = 0; day < 6; day++){
-                        for (let number = 0; number < 6; number++){
+                        for (let number = 0; number < lessonsInTable; number++){
                             let dayIndex = week * 7 + day;
                             let tableIndex = 49 * week + 7 * (number + 1) + (day + 1);
 
