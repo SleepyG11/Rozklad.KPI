@@ -235,7 +235,7 @@ export default class SchedulesManager{
                     for (let day = 0; day < 6; day++){
                         for (let number = 0; number < lessonsInTable; number++){
                             let dayIndex = week * 7 + day;
-                            let tableIndex = 49 * week + 7 * (number + 1) + (day + 1);
+                            let tableIndex = (cells.length / 2) * week + 7 * (number + 1) + (day + 1);
 
                             let cell = cells[tableIndex];
                             let links = cell.querySelectorAll('.plainLink');
