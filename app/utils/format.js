@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 
 import { getLessonDates } from "./times";
 import { l } from "./messages";
-import { escape } from 'lodash';
+import _ from 'lodash';
 
 const LESSON_TIMES = {
     0: '08:30 - 10:05',
@@ -102,7 +102,7 @@ export function formatSingleLesson(lesson, number, links){
     let lessonLinks = links.length ? l(
         'lesson.templates.single.links',
         { links: links.map(link => {
-            return `<a href="${escape(link.url)}">${link.name.replace(/\</g, '&lt;').replace(/\>/g, '&gt;')}</a>`
+            return `<a href="${_.escape(link.url)}">${link.name.replace(/\</g, '&lt;').replace(/\>/g, '&gt;')}</a>`
         }).join(', ') }
     ) : '';
     return l('lesson.templates.single.message', {
