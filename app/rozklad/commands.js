@@ -892,7 +892,9 @@ export default class CommandsInterface{
             linkType = type;
         }
         if (!linkType){
-            return this.client.sendMessage(
+            linkType = "Other",
+            linkUrl = (linkUserMsg.text || '').split(/[ \r\n]/).trim().substring(0, 512);
+            if (!linkUrl) return this.client.sendMessage(
                 chatId, l('link.messages.directive.invalidUrl'), messageOptions
             )
         }

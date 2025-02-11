@@ -280,7 +280,7 @@ const LOCALES = {
                 limitExceeded: 'У пари забагато посилань.',
                 alreadyExists: 'Це посилання вже було додано.',
                 chooseType: 'Який тип цього посилання?',
-                invalidUrl: 'Посилання не є дійсним посиланням на Zoom, Meet або Microsoft Teams.',
+                invalidUrl: 'Посилання не є дійсним посиланням.',
 
                 message: 'Введіть посилання на поточну пару.',
             },
