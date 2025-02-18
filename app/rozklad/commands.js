@@ -893,8 +893,8 @@ export default class CommandsInterface{
         }
         if (!linkType){
             linkType = "Other",
-            linkUrl = (linkUserMsg.text || '').split(/[ \r\n]/).trim().substring(0, 512);
-            if (!linkUrl) return this.client.sendMessage(
+            linkUrl = (linkUserMsg.text || '').split(/[ \r\n]/).shift().trim().substring(0, 512);
+            if (!linkUrl || !(linkUrl.startsWith('http://') || linkUrl.startsWith('https://'))) return this.client.sendMessage(
                 chatId, l('link.messages.directive.invalidUrl'), messageOptions
             )
         }
