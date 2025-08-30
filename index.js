@@ -3,7 +3,7 @@ moment.locale('uk');
 moment.tz.setDefault("Europe/Kyiv");
 
 import TelegramClient from './app/bot.js';
-import db from './app/database';
+import db from './app/database/index.js';
 
 const client = new TelegramClient(process.env.TELEGRAM_BOT_TOKEN);
 

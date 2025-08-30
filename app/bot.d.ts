@@ -1,11 +1,11 @@
 import TelegramBot, { Message, CallbackQuery, ConstructorOptions, User } from 'node-telegram-bot-api';
 import { EventEmitter } from 'node:events';
 
-import ChatsManager from './rozklad/chats';
-import SchedulesManager from './rozklad/schedules';
-import CommandsInterface from './rozklad/commands';
-import LinksManager from './rozklad/links';
-import AdminInterface from './rozklad/admin';
+import ChatsManager from './rozklad/chats.js';
+import SchedulesManager from './rozklad/schedules.js';
+import CommandsInterface from './rozklad/commands.js';
+import LinksManager from './rozklad/links.js';
+import AdminInterface from './rozklad/admin.js';
 
 const COMMAND_PREFIX_REGEXP = /^\/[^\s]/
 

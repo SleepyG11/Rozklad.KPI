@@ -2,10 +2,10 @@ import { Op } from "sequelize";
 import moment from "moment-timezone";
 import _ from 'lodash';
 
-import TelegramClient from "../bot";
-import db, { Chats, Schedules, Variables } from "../database";
-import * as Times from '../utils/times';
-import * as Weekends from '../utils/weekends';
+import TelegramClient from "../bot.js";
+import db, { Chats, Schedules, Variables } from "../database/index.js";
+import * as Times from '../utils/times.js';
+import * as Weekends from '../utils/weekends.js';
 
 export default class AdminInterface{
     /**

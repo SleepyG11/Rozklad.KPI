@@ -4,11 +4,11 @@ import { createHash } from 'crypto';
 import fetch from 'node-fetch';
 import _ from 'lodash';
 
-import db, { Names, Schedules } from '../database';
+import db, { Names, Schedules } from '../database/index.js';
 
-import CacheMap from '../utils/cache';
-import { getSemester } from '../utils/times';
-import { formatGroupName } from '../utils/format';
+import CacheMap from '../utils/cache.js';
+import { getSemester } from '../utils/times.js';
+import { formatGroupName } from '../utils/format.js';
 
 const LESSON_TYPE_REGEXP = /(?:Лек|Прак|Лаб)(?: on-line)?/;
 const PARSER_OPTIONS = {

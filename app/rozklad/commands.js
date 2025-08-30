@@ -1,8 +1,8 @@
 import moment from "moment-timezone";
 import { AbortError } from "node-fetch";
 
-import TelegramClient from '../bot';
-import { l, localizeKeyboard } from '../utils/messages';
+import TelegramClient from '../bot.js';
+import { l, localizeKeyboard } from '../utils/messages.js';
 import {
 	getCurrentLesson,
 	getCurrentWeekLessons,
@@ -13,7 +13,7 @@ import {
 	getSecondWeekLessons,
 	getTodayLessons,
 	getTomorrowLessons,
-} from '../utils/lessons';
+} from '../utils/lessons.js';
 import {
 	formatChatSettings,
 	formatDateLabels,
@@ -21,9 +21,9 @@ import {
 	formatLessonsDay,
 	formatLessonsWeek,
 	formatSingleLesson,
-} from '../utils/format';
-import { getBreak, getLessonDates, getLessonNumber, getSemester, getWeek } from '../utils/times';
-import { getWeekend } from '../utils/weekends';
+} from '../utils/format.js';
+import { getBreak, getLessonDates, getLessonNumber, getSemester, getWeek } from '../utils/times.js';
+import { getWeekend } from '../utils/weekends.js';
 
 export default class CommandsInterface{
     BIND_COMMAND_STAGES = {

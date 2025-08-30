@@ -14,7 +14,7 @@
     "sequelize": "^6.32.1"
   },
   "scripts": {
-    "start": "nodemon -r dotenv/config --experimental-specifier-resolution=node --no-warnings index.js"
+    "start": "nodemon -r dotenv/config index.js"
   },
   "nodemonConfig": {
     "delay": 1000

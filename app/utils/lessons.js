@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
-import { calculateLessonDates, getDayIndex, getLessonAndBreak, getLessonNumber, getWeek } from "./times";
-import { getWeekend } from "./weekends";
+import { calculateLessonDates, getDayIndex, getLessonAndBreak, getLessonNumber, getWeek } from "./times.js";
+import { getWeekend } from "./weekends.js";
 
 export function getCurrentLesson(schedule = [], date){
     if (!schedule) return { result: null, reason: 'missingSchedule' };

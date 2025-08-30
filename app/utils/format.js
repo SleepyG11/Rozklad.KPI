@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
-import { getLessonDates } from "./times";
-import { l } from "./messages";
+import { getLessonDates } from "./times.js";
+import { l } from "./messages.js";
 import _ from 'lodash';
 
 const LESSON_TIMES = {

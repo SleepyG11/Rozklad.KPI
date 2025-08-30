@@ -1,7 +1,7 @@
 import { Op } from 'sequelize';
-import { Chats } from '../database';
+import { Chats } from '../database/index.js';
 
-import CacheMap from '../utils/cache';
+import CacheMap from '../utils/cache.js';
 
 export default class ChatsManager{
     constructor(client){

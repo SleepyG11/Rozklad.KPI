@@ -1,10 +1,10 @@
 import { Sequelize } from "sequelize";
 
-import scheduleInit from "./models/schedule";
-import nameInit from "./models/name";
-import chatInit from "./models/chat";
-import linkInit from "./models/links";
-import variableInit from "./models/variable";
+import scheduleInit from "./models/schedule.js";
+import nameInit from "./models/name.js";
+import chatInit from "./models/chat.js";
+import linkInit from "./models/links.js";
+import variableInit from "./models/variable.js";
 
 const db = new Sequelize({
     dialect: 'postgres',
