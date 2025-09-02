@@ -404,15 +404,17 @@ export class SchedulesV2Manager extends SchedulesManager{
 
     async getSearchGroupsName(name = ''){
         const groups = await this.getGroupsList()
-        const result = groups.filter(item => item.name.toLowerCase().startsWith(name.toLowerCase())).slice(0, 10)
-        return result
+        if (!name || name.length < 5) return []
+        return groups.filter(item => item.name.toLowerCase().startsWith(name.toLowerCase())).slice(0, 10)
     }
     async getSearchGroupSchedule(uuid = ''){
+        if (!uuid) return null
         return fetch(process.env.SCHEDULE_HOST + "/schedule/lessons?groupId=" + uuid, {
             signal: AbortSignal.timeout(4000),
         }).then(r => r.json())
     }
     async getSearchGroupScheduleStatus(uuid = ''){
+        if (!uuid) return null
         return fetch(process.env.SCHEDULE_HOST + "/schedule/status?groupId=" + uuid, {
             signal: AbortSignal.timeout(2000),
         }).then(r => r.json())
@@ -516,8 +518,9 @@ export class SchedulesV2Manager extends SchedulesManager{
                 let statusData;
                 try {
                     [jsonData, statusData] = await Promise.all([this.getSearchGroupSchedule(uuid), this.getSearchGroupScheduleStatus(uuid)])
+                    if (!jsonData || !jsonData.scheduleFirstWeek || !jsonData.scheduleFirstWeek) throw new Error("Schedule data not found")
+                    if (!statusData) throw new Error("Schedule status not found")
                 } catch(e){
-                    console.error(e)
                     return await this.searchGroupSchedule(uuid, 'database');
                 }
 
