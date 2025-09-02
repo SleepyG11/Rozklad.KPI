@@ -351,7 +351,7 @@ export default class CommandsInterface{
                 }
             }
         } catch(e){
-            console.log(e);
+            console.error(e);
         }
     }
     async bindGroupMessage(msg, args){

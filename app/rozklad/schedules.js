@@ -371,3 +371,233 @@ export default class SchedulesManager{
         });
     }
 }
+
+export class SchedulesV2Manager extends SchedulesManager{
+    constructor(client){
+        super(client)
+
+        this.groupsQueue = null
+    }
+
+    async getGroupsList(){
+        if (!this.groupsQueue){
+            this.groupsQueue = fetch(process.env.SCHEDULE_HOST + "/schedule/groups", {
+                signal: AbortSignal.timeout(2000)
+            }).then(r => r.json()).then(body => {
+                setTimeout(() => {
+                    this.groupsQueue = null
+                }, 1000 * 60 * 60)
+                return body.map(item => {
+                    return {
+                        id: item.id,
+                        name: item.name || ""
+                    }
+                })
+            })
+        }
+        let groups = await this.groupsQueue
+        if (!groups) {
+            throw new Error("No groups list data found")
+        }
+        return groups
+    }
+
+    async getSearchGroupsName(name = ''){
+        const groups = await this.getGroupsList()
+        const result = groups.filter(item => item.name.toLowerCase().startsWith(name.toLowerCase())).slice(0, 10)
+        return result
+    }
+    async getSearchGroupSchedule(uuid = ''){
+        return fetch(process.env.SCHEDULE_HOST + "/schedule/lessons?groupId=" + uuid, {
+            signal: AbortSignal.timeout(4000),
+        }).then(r => r.json())
+    }
+    async getSearchGroupScheduleStatus(uuid = ''){
+        return fetch(process.env.SCHEDULE_HOST + "/schedule/status?groupId=" + uuid, {
+            signal: AbortSignal.timeout(2000),
+        }).then(r => r.json())
+    }
+
+    /**
+     * @param {string} name 
+     * @param {'api' | 'database'} mode 
+     * @returns {Promise<import('../database/models/name').Name[]>}
+     */
+    async searchGroupsName(name, mode = 'api'){
+        name = formatGroupName(name);
+        switch(mode){
+            case 'database': {
+                return await Names.findAll({
+                    where: { name: { [Op.iLike]: name + '%' } },
+                    order: [['name', 'ASC']]
+                })
+            }
+            case 'api': {
+                let body;
+                try {
+                    body = await this.getSearchGroupsName(name);
+                } catch(e){
+                    return await this.searchGroupsName(name, 'database');
+                }
+                if (!body) return [];
+                let result = await Names.bulkCreate(body.map(item => ({ name: item.name })), {
+                    returning: true,
+                    fields: ['name'],
+                    updateOnDuplicate: ['name'],
+                })
+                return result.sort((a, b) => a.name.localeCompare(b, 'ua', { sensitivity: 'base' }));
+            }
+            default: return [];
+        }
+    }
+
+    /**
+     * @param {string} name 
+     * @param {'api' | 'database' | 'cache'} mode 
+     * @returns {Promise<import('../database/models/schedule').Schedule[]>}
+     */
+    async searchGroupsData(name, mode = 'api'){
+        name = formatGroupName(name);
+        switch(mode){
+            case 'database': {
+                return await Schedules.findAll({
+                    where: { [Op.or]: { parent: name, name } },
+                    order: [['name', 'ASC']],
+                    attributes: {
+                        exclude: ['data'],
+                        include: ['uuid', 'name', 'parent', 'createdAt', 'updatedAt']
+                    }
+                })
+            }
+            case 'cache': {
+                return this.dataCache.get(name) || null;
+            }
+            case 'api': {
+                let res;
+                try {
+                    res = await this.getSearchGroupsName(name)
+                } catch(e) {
+                    return await this.searchGroupsData(name, 'database');
+                }
+                if (!res?.length) return this.searchGroupsData(name, 'database')
+                let result = await Schedules.bulkCreate(res.map(item => {
+                    return {
+                        name: item.name,
+                        uuid: item.id,
+                        parent: null,
+                    }
+                }), {
+                    returning: ['uuid', 'name', 'parent', 'createdAt', 'updatedAt'],
+                    fields: ['name', 'uuid', 'parent'],
+                    updateOnDuplicate: ['name']
+                })
+                return result.sort((a, b) => a.name.localeCompare(b, 'ua', { sensitivity: 'base' }));
+
+            }
+            default: return []
+        }
+    }
+
+    /**
+     * @param {string} uuid 
+     * @param {'api' | 'database' | 'cache'} mode 
+     * @returns {Promise<import('../database/models/schedule').Schedule | null>}
+     */
+    async searchGroupSchedule(uuid, mode = 'api'){
+        switch(mode){
+            case 'database': {
+                return await Schedules.findByPk(uuid)
+            }
+            case 'cache': {
+                return this.scheduleCache.get(uuid) || null;
+            }
+            case 'api': {
+                let jsonData;
+                let statusData;
+                try {
+                    [jsonData, statusData] = await Promise.all([this.getSearchGroupSchedule(uuid), this.getSearchGroupScheduleStatus(uuid)])
+                } catch(e){
+                    console.error(e)
+                    return await this.searchGroupSchedule(uuid, 'database');
+                }
+
+                let data = Array(14).fill().map(() => {
+                    return { count: 0, min: -1, max: -1, lessons: [] }
+                });
+
+                let rawSchedule = new Array(14).fill(() => null)
+                rawSchedule.splice(0, jsonData.scheduleFirstWeek.length, ...jsonData.scheduleFirstWeek)
+                rawSchedule.splice(7, 7 + jsonData.scheduleSecondWeek.length, ...jsonData.scheduleSecondWeek)
+
+                const lessonNumberTable = {
+                    "08:30:00": 0,
+                    "10:25:00": 1,
+                    "12:20:00": 2,
+                    "14:15:00": 3,
+                    "16:10:00": 4,
+                    "18:30:00": 5,
+                    "20:20:00": 6,
+                }
+
+                // Напоминание для себя: на один и тот же lesson number может быть несколько пар, и они идут отдельно друг от друга
+                // Потому их надо хранить во временном виде до конца, чтобы их полностью заполнить
+
+                for (let week = 0; week < 2; week++){
+                    for (let day = 0; day < 6; day++){
+                        let dayIndex = week * 7 + day;
+                        let rawDay = rawSchedule[dayIndex]
+                        if (!rawDay) continue
+                        let dayContainer = data[dayIndex];
+                        for (let rawLesson of rawDay.pairs){
+                            let number = lessonNumberTable[rawLesson.time]
+                            if (!rawLesson.name) return
+
+                            dayContainer.count++;
+                            if (dayContainer.min === -1) dayContainer.min = number;
+                            dayContainer.max = number;
+
+                            let lessonContainer = dayContainer.lessons[number]
+                            if (!lessonContainer) {
+                                dayContainer.lessons[number] = lessonContainer = {
+                                    hash: '',
+                                    name: new Set(),
+                                    types: new Set(),
+                                    rooms: new Set(),
+                                    teachers: new Set(),
+                                }
+                            }
+
+                            lessonContainer.name.add(rawLesson.name)
+                            if (rawLesson.place) lessonContainer.rooms.add(rawLesson.place)
+                            if (rawLesson.teacherName) lessonContainer.teachers.add(rawLesson.teacherName)
+                            if (rawLesson.type) lessonContainer.types.add(rawLesson.type)
+                        }
+                    }
+                }
+
+                for (let dayContainer of data){
+                    dayContainer.lessons.forEach(lessonContainer => {
+                        lessonContainer.name = Array.from(lessonContainer.name).join('. ');
+                        lessonContainer.types =  Array.from(lessonContainer.types);
+                        lessonContainer.rooms = Array.from(lessonContainer.rooms);
+                        lessonContainer.teachers = Array.from(lessonContainer.teachers);
+
+                        lessonContainer.hash = createHash('md5').update(
+                            `${lessonContainer.name},${lessonContainer.types.join(',')}${lessonContainer.rooms.join(',')},${lessonContainer.teachers.join(',')}`
+                        ).digest('hex');
+                    })
+                }
+
+                let [result] = await Schedules.bulkCreate([{
+                    uuid, data,
+                    name: statusData[0].groupName
+                }], {
+                    updateOnDuplicate: ['data'],
+                    returning: true,
+                })
+                return result;
+            }
+            default: return null
+        }
+    }
+}

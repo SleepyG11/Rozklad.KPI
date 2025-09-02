@@ -3,7 +3,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import { EventEmitter } from 'node:events';
 
 import ChatsManager from './rozklad/chats.js';
-import SchedulesManager from './rozklad/schedules.js';
+import { SchedulesV2Manager } from './rozklad/schedules.js';
 import CommandsInterface from './rozklad/commands.js';
 import LinksManager from './rozklad/links.js';
 import AdminInterface from './rozklad/admin.js';
@@ -20,7 +20,7 @@ export default class TelegramClient extends TelegramBot{
 
         this.rozklad = {
             chats: new ChatsManager(this),
-            schedules: new SchedulesManager(this),
+            schedules: new SchedulesV2Manager(this),
             commands: new CommandsInterface(this),
             links: new LinksManager(this),
             admin: new AdminInterface(this),
