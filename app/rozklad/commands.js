@@ -784,7 +784,7 @@ export default class CommandsInterface{
 
                     let semester = getSemester(linkData.createdAt);
                     linkData.update({
-                        name: nameUserMsg.text,
+                        name: nameUserMsg.text ?? "(без назви)",
                         active: true,
                         expiresAt: moment({ month: 0 }).add(semester ? 5 : 12, 'month').endOf('month').toDate()
                     })
@@ -1009,7 +1009,7 @@ export default class CommandsInterface{
         let keyboard = [
             ...currentLinks.map(link => {
                 return [{
-                    text: link.name,
+                    text: link.name ?? '(без назви)',
                     callback_data: `linkdel?d=${link.id}`
                 }]
             }),

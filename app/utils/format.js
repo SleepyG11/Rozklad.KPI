@@ -102,7 +102,7 @@ export function formatSingleLesson(lesson, number, links){
     let lessonLinks = links.length ? l(
         'lesson.templates.single.links',
         { links: links.map(link => {
-            return `<a href="${_.escape(link.url)}">${link.name.replace(/\</g, '&lt;').replace(/\>/g, '&gt;')}</a>`
+            return `<a href="${_.escape(link.url)}">${(link.name ?? '(без назви)').replace(/\</g, '&lt;').replace(/\>/g, '&gt;')}</a>`
         }).join(', ') }
     ) : '';
     return l('lesson.templates.single.message', {
