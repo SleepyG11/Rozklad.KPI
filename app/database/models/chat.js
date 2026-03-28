@@ -9,7 +9,7 @@ export default function chatInit(sequelize){
             primaryKey: true
         },
         groupUUID: {
-            type: DataTypes.UUID,
+            type: DataTypes.TEXT,
         },
         parentChatId: {
             type: DataTypes.BIGINT,

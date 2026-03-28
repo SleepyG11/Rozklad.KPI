@@ -5,7 +5,7 @@ export class Schedule extends Model{}
 export default function scheduleInit(sequelize){
     return Schedule.init({
         uuid: {
-            type: DataTypes.UUID,
+            type: DataTypes.TEXT,
             primaryKey: true
         },
         name: {
